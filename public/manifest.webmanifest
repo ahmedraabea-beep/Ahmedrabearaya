@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "منظومة راية كونكورد بلازا | إدارة المبيعات والحوافز التنفيذية",
+  "short_name": "راية كونكورد",
+  "description": "المنظومة الرقمية التنفيذية المعتمدة لفرع راية كونكورد بلازا (التجمع الخامس) لمتابعة المبيعات واحتساب ضريبة 14% وتدقيق الحوافز والأهداف.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#064e3b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "finance", "productivity"]
+}

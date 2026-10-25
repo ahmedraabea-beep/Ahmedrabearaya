@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@layer utilities {
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    body {
+      background: white !important;
+      color: #0f172a !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Hide background elements when printing modal */
+    body > *:not(#report-print-root) {
+      display: none !important;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+
+    .print-only {
+      display: block !important;
+    }
+
+    .print-break-inside-avoid {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  }
+}

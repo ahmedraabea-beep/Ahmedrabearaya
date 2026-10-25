@@ -1,0 +1,381 @@
+{
+  "records": [
+    {
+      "id": "raya-jan-1",
+      "employeeId": "140729",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "أحمد ربيع سيد",
+      "target": 400000,
+      "actual": 445000,
+      "period": "يناير 2026",
+      "earnedIncentive": 14800,
+      "achievementRate": 111.25,
+      "difference": 45000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-jan-2",
+      "employeeId": "41308",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "عمرو عبد الحليم",
+      "target": 380000,
+      "actual": 395000,
+      "period": "يناير 2026",
+      "earnedIncentive": 11200,
+      "achievementRate": 103.94736842105263,
+      "difference": 15000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-jan-3",
+      "employeeId": "125177",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "طارق محمود",
+      "target": 350000,
+      "actual": 320000,
+      "period": "يناير 2026",
+      "earnedIncentive": 6500,
+      "achievementRate": 91.42857142857143,
+      "difference": -30000,
+      "isAchieved": false
+    },
+    {
+      "id": "raya-feb-1",
+      "employeeId": "140729",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "أحمد ربيع سيد",
+      "target": 420000,
+      "actual": 480000,
+      "period": "فبراير 2026",
+      "earnedIncentive": 16900,
+      "achievementRate": 114.28571428571428,
+      "difference": 60000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-feb-2",
+      "employeeId": "41308",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "عمرو عبد الحليم",
+      "target": 400000,
+      "actual": 415000,
+      "period": "فبراير 2026",
+      "earnedIncentive": 12100,
+      "achievementRate": 103.75000000000001,
+      "difference": 15000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-feb-3",
+      "employeeId": "125177",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "طارق محمود",
+      "target": 370000,
+      "actual": 360000,
+      "period": "فبراير 2026",
+      "earnedIncentive": 7200,
+      "achievementRate": 97.2972972972973,
+      "difference": -10000,
+      "isAchieved": false
+    },
+    {
+      "id": "raya-mar-1",
+      "employeeId": "140729",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "أحمد ربيع سيد",
+      "target": 450000,
+      "actual": 535000,
+      "period": "مارس 2026",
+      "earnedIncentive": 18950,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية Flagship (Samsung S / iPhone)",
+          "quantitySold": 28,
+          "unitIncentive": 200,
+          "totalEarned": 5600
+        },
+        {
+          "productCategory": "أجهزة لابتوب وكمبيوتر (Dell / HP / Lenovo)",
+          "quantitySold": 6,
+          "unitIncentive": 350,
+          "totalEarned": 2100
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 18,
+          "unitIncentive": 250,
+          "totalEarned": 4500
+        },
+        {
+          "productCategory": "خدمة ضمان راية الممتد (Raya Protect Warranty)",
+          "quantitySold": 22,
+          "unitIncentive": 150,
+          "totalEarned": 3300
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 35,
+          "unitIncentive": 50,
+          "totalEarned": 1750
+        }
+      ],
+      "achievementRate": 118.88888888888889,
+      "difference": 85000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-mar-2",
+      "employeeId": "41308",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "عمرو عبد الحليم",
+      "target": 420000,
+      "actual": 442000,
+      "period": "مارس 2026",
+      "earnedIncentive": 12140,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية Flagship (Samsung S / iPhone)",
+          "quantitySold": 15,
+          "unitIncentive": 200,
+          "totalEarned": 3000
+        },
+        {
+          "productCategory": "هواتف ذكية فئة متوسطة (A-Series / Xiaomi / Realme)",
+          "quantitySold": 32,
+          "unitIncentive": 100,
+          "totalEarned": 3200
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 14,
+          "unitIncentive": 250,
+          "totalEarned": 3500
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 40,
+          "unitIncentive": 50,
+          "totalEarned": 2000
+        }
+      ],
+      "achievementRate": 105.23809523809524,
+      "difference": 22000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-mar-3",
+      "employeeId": "125177",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "طارق محمود",
+      "target": 390000,
+      "actual": 375000,
+      "period": "مارس 2026",
+      "earnedIncentive": 7750,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية فئة متوسطة (A-Series / Xiaomi / Realme)",
+          "quantitySold": 24,
+          "unitIncentive": 100,
+          "totalEarned": 2400
+        },
+        {
+          "productCategory": "أجهزة لابتوب وكمبيوتر (Dell / HP / Lenovo)",
+          "quantitySold": 5,
+          "unitIncentive": 350,
+          "totalEarned": 1750
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 10,
+          "unitIncentive": 250,
+          "totalEarned": 2500
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 22,
+          "unitIncentive": 50,
+          "totalEarned": 1100
+        }
+      ],
+      "achievementRate": 96.15384615384616,
+      "difference": -15000,
+      "isAchieved": false
+    },
+    {
+      "id": "raya-oct-1",
+      "employeeId": "140729",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "أحمد ربيع سيد",
+      "target": 560000,
+      "actual": 625000,
+      "period": "أكتوبر 2026",
+      "earnedIncentive": 21500,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية Flagship (Samsung S / iPhone)",
+          "quantitySold": 32,
+          "unitIncentive": 200,
+          "totalEarned": 6400
+        },
+        {
+          "productCategory": "أجهزة لابتوب وكمبيوتر (Dell / HP / Lenovo)",
+          "quantitySold": 8,
+          "unitIncentive": 350,
+          "totalEarned": 2800
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 22,
+          "unitIncentive": 250,
+          "totalEarned": 5500
+        },
+        {
+          "productCategory": "خدمة ضمان راية الممتد (Raya Protect Warranty)",
+          "quantitySold": 26,
+          "unitIncentive": 150,
+          "totalEarned": 3900
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 42,
+          "unitIncentive": 50,
+          "totalEarned": 2100
+        }
+      ],
+      "achievementRate": 111.60714285714286,
+      "difference": 65000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-oct-2",
+      "employeeId": "41308",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "عمرو عبد الحليم",
+      "target": 490000,
+      "actual": 515000,
+      "period": "أكتوبر 2026",
+      "earnedIncentive": 14800,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية Flagship (Samsung S / iPhone)",
+          "quantitySold": 18,
+          "unitIncentive": 200,
+          "totalEarned": 3600
+        },
+        {
+          "productCategory": "هواتف ذكية فئة متوسطة (A-Series / Xiaomi / Realme)",
+          "quantitySold": 38,
+          "unitIncentive": 100,
+          "totalEarned": 3800
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 16,
+          "unitIncentive": 250,
+          "totalEarned": 4000
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 45,
+          "unitIncentive": 50,
+          "totalEarned": 2250
+        }
+      ],
+      "achievementRate": 105.10204081632652,
+      "difference": 25000,
+      "isAchieved": true
+    },
+    {
+      "id": "raya-oct-3",
+      "employeeId": "125177",
+      "branch": "راية - فرع كونكورد بلازا",
+      "employee": "طارق محمود",
+      "target": 350000,
+      "actual": 368000,
+      "period": "أكتوبر 2026",
+      "earnedIncentive": 9200,
+      "incentiveItems": [
+        {
+          "productCategory": "هواتف ذكية فئة متوسطة (A-Series / Xiaomi / Realme)",
+          "quantitySold": 26,
+          "unitIncentive": 100,
+          "totalEarned": 2600
+        },
+        {
+          "productCategory": "أجهزة لابتوب وكمبيوتر (Dell / HP / Lenovo)",
+          "quantitySold": 6,
+          "unitIncentive": 350,
+          "totalEarned": 2100
+        },
+        {
+          "productCategory": "خدمات تمويل وتقسيط أمان (Aman Consumer Finance)",
+          "quantitySold": 12,
+          "unitIncentive": 250,
+          "totalEarned": 3000
+        },
+        {
+          "productCategory": "إكسسوارات وسماعات وملحقات أصلية",
+          "quantitySold": 30,
+          "unitIncentive": 50,
+          "totalEarned": 1500
+        }
+      ],
+      "achievementRate": 105.14285714285714,
+      "difference": 18000,
+      "isAchieved": true
+    }
+  ],
+  "incentiveRules": [],
+  "targetAllocation": {
+    "branchName": "راية - فرع كونكورد بلازا",
+    "grandTotal": 1750000,
+    "installmentTarget": 350000,
+    "revenueTarget": 1400000,
+    "revenueBreakdown": {
+      "mobiles": 900000,
+      "accessories": 250000,
+      "other": 250000
+    },
+    "period": "أكتوبر 2026",
+    "daysInMonth": 31,
+    "dailyRevenueTarget": 45161,
+    "dailyGrandTotalTarget": 56452,
+    "method": "percentage",
+    "allocations": [
+      {
+        "employeeId": "140729",
+        "employeeName": "أحمد ربيع سيد",
+        "percentage": 40,
+        "targetAmount": 560000,
+        "dailyTarget": 18065,
+        "mobilesShare": 360000,
+        "accessoriesShare": 100000,
+        "otherShare": 100000,
+        "role": "مستشار مبيعات أول"
+      },
+      {
+        "employeeId": "41308",
+        "employeeName": "عمرو عبد الحليم",
+        "percentage": 35,
+        "targetAmount": 490000,
+        "dailyTarget": 15806,
+        "mobilesShare": 315000,
+        "accessoriesShare": 87500,
+        "otherShare": 87500,
+        "role": "مستشار مبيعات"
+      },
+      {
+        "employeeId": "125177",
+        "employeeName": "طارق محمود",
+        "percentage": 25,
+        "targetAmount": 350000,
+        "dailyTarget": 11290,
+        "mobilesShare": 225000,
+        "accessoriesShare": 62500,
+        "otherShare": 62500,
+        "role": "مستشار مبيعات"
+      }
+    ]
+  },
+  "lastUpdated": "2026-10-14T00:30:00.000Z"
+}
