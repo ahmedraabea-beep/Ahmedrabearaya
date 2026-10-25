@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test:import": "tsx src/utils/__tests__/syntheticExcelValidation.ts"
+    "test:import": "tsx src/tests/import.test.ts && tsx src/utils/__tests__/syntheticExcelValidation.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
