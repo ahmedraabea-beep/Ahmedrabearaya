@@ -46,15 +46,23 @@ export function selectFilteredRecords(state: AppStoreState): SalesRecord[] {
 
 // 2. Target Structure for Active Period
 export function selectActiveTargetStructure(state: AppStoreState): BranchTotalTargetStructure {
-  const period = state.selectedPeriod.trim();
-  if (state.targets[period]) {
-    return state.targets[period];
-  }
-  // If no target defined yet for this month, construct from default or empty structure
-  return (
-    state.targets['أكتوبر 2026'] ||
-    DEFAULT_OCTOBER_TARGET_STRUCTURE
-  );
+  const period = (state.selectedPeriod || '').trim();
+  const raw = (state.targets && state.targets[period]) || (state.targets && state.targets['أكتوبر 2026']) || DEFAULT_OCTOBER_TARGET_STRUCTURE;
+
+  return {
+    grandTotal: raw?.grandTotal || DEFAULT_OCTOBER_TARGET_STRUCTURE.grandTotal,
+    installmentTarget: raw?.installmentTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.installmentTarget,
+    revenueTarget: raw?.revenueTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueTarget,
+    revenueBreakdown: {
+      mobiles: raw?.revenueBreakdown?.mobiles || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.mobiles,
+      accessories: raw?.revenueBreakdown?.accessories || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.accessories,
+      other: raw?.revenueBreakdown?.other || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.other,
+    },
+    period: raw?.period || period || 'أكتوبر 2026',
+    daysInMonth: raw?.daysInMonth || DEFAULT_OCTOBER_TARGET_STRUCTURE.daysInMonth,
+    dailyRevenueTarget: raw?.dailyRevenueTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.dailyRevenueTarget,
+    dailyGrandTotalTarget: raw?.dailyGrandTotalTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.dailyGrandTotalTarget,
+  };
 }
 
 // 3. Financial Totals (Single Source of Truth)

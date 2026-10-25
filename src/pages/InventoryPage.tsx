@@ -42,7 +42,9 @@ export const InventoryPage: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <SmartInventoryOptimizerModal
           isOpen={true}
-          onClose={() => {}}
+          onClose={() => {
+            window.location.hash = '#/';
+          }}
           language={language}
           currency={currency}
           isFullPage={true}

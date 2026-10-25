@@ -19,6 +19,7 @@ import { IncentiveBreakdownModal } from './components/IncentiveBreakdownModal';
 import { TargetAllocationModal } from './components/TargetAllocationModal';
 import { DownloadManagerNotification } from './components/DownloadManagerNotification';
 import { AndroidMobileShell } from './components/AndroidMobileShell';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
 import { DashboardPage } from './pages/DashboardPage';
@@ -376,8 +377,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <DataStoreProvider>
-      <AppContent />
-    </DataStoreProvider>
+    <ErrorBoundary>
+      <DataStoreProvider>
+        <AppContent />
+      </DataStoreProvider>
+    </ErrorBoundary>
   );
 }

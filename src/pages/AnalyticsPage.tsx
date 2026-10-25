@@ -25,10 +25,11 @@ import { SalesPeakHeatmap } from '../components/SalesPeakHeatmap';
 import { AbcAnalysisSection } from '../components/AbcAnalysisSection';
 import { FutureHiringAndExpansionTab } from '../components/FutureHiringAndExpansionTab';
 import { RayaCorporateOptimizerDashboard } from '../components/RayaCorporateOptimizerDashboard';
+import { SalesForecastingSection } from '../components/SalesForecastingSection';
 
 export const AnalyticsPage: React.FC = () => {
   const { state, dispatch } = useDataStore();
-  const [activeTab, setActiveTab] = useState<'growth' | 'comparison' | 'heatmap' | 'abc' | 'optimizer'>('growth');
+  const [activeTab, setActiveTab] = useState<'growth' | 'forecasting' | 'comparison' | 'heatmap' | 'abc' | 'optimizer'>('forecasting');
 
   const isAr = state.settings.language === 'ar';
   const currency = state.settings.currency;
@@ -46,6 +47,18 @@ export const AnalyticsPage: React.FC = () => {
         {/* Segmented Sub-Tabs */}
         <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
           <button
+            onClick={() => setActiveTab('forecasting')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'forecasting'
+                ? 'bg-white text-indigo-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <LineChart className="w-4 h-4 text-indigo-600" />
+            <span>{isAr ? 'التنبؤ بالمبيعات (Forecasting)' : 'Sales Forecasting'}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('growth')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'growth'
@@ -53,7 +66,7 @@ export const AnalyticsPage: React.FC = () => {
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <TrendingUp className="w-4 h-4 text-indigo-600" />
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
             <span>{isAr ? 'النمو والتوقعات السنوية' : 'Growth & Annual Projections'}</span>
           </button>
 
@@ -107,7 +120,19 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── TAB 1: النمو والتوقعات السنوية ── */}
+      {/* ── TAB 1: Sales Forecasting (New Dedicated Feature) ── */}
+      {activeTab === 'forecasting' && (
+        <div className="space-y-5 animate-in fade-in duration-150">
+          <SalesForecastingSection
+            records={activeRecords}
+            currency={currency}
+            branches={branches}
+            language={state.settings.language}
+          />
+        </div>
+      )}
+
+      {/* ── TAB 2: النمو والتوقعات السنوية ── */}
       {activeTab === 'growth' && (
         <div className="space-y-5 animate-in fade-in duration-150">
           <BranchPerformanceCurve
@@ -132,7 +157,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 2: مقارنة الفروع ── */}
+      {/* ── TAB 3: مقارنة الفروع ── */}
       {activeTab === 'comparison' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <BranchComparisonChart
@@ -145,7 +170,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 3: أوقات الذروة والمبيعات الحرارية ── */}
+      {/* ── TAB 4: أوقات الذروة والمبيعات الحرارية ── */}
       {activeTab === 'heatmap' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <SalesPeakHeatmap
@@ -157,7 +182,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 4: تحليل ABC والتوظيف ── */}
+      {/* ── TAB 5: تحليل ABC والتوظيف ── */}
       {activeTab === 'abc' && (
         <div className="space-y-5 animate-in fade-in duration-150">
           <AbcAnalysisSection
@@ -177,7 +202,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 5: لوحة راية المؤسسية للتحسين ── */}
+      {/* ── TAB 6: لوحة راية المؤسسية للتحسين ── */}
       {activeTab === 'optimizer' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <RayaCorporateOptimizerDashboard
@@ -193,3 +218,5 @@ export const AnalyticsPage: React.FC = () => {
     </div>
   );
 };
+
+export default AnalyticsPage;

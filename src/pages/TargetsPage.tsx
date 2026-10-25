@@ -43,7 +43,7 @@ export const TargetsPage: React.FC<TargetsPageProps> = ({
   const activeRecords = selectRecordsInActivePeriod(state);
   const pace = selectRevenuePaceMetrics(state);
 
-  const allocations = state.targetAllocation || [
+  const allocations = Array.isArray(state.targetAllocation) && state.targetAllocation.length > 0 ? state.targetAllocation : [
     { employeeId: '140729', employeeName: 'أحمد ربيع سيد', percentage: 40, targetAmount: 560000 },
     { employeeId: '41308', employeeName: 'عمرو عبد الحليم', percentage: 35, targetAmount: 490000 },
     { employeeId: '125177', employeeName: 'طارق محمود', percentage: 25, targetAmount: 350000 },

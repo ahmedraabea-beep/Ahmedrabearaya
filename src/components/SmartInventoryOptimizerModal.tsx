@@ -414,6 +414,13 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
+  const handleClose = () => {
+    if (onClose) onClose();
+    if (isFullPage) {
+      window.location.hash = '#/';
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -525,7 +532,7 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
 
             {/* Close Button */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
               aria-label="Close"
             >
@@ -1438,7 +1445,7 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
             </button>
             <span>·</span>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold cursor-pointer transition-colors"
             >
               إغلاق النافذة
