@@ -43,6 +43,7 @@ interface ServerDataStore {
   notificationSettings: any;
   notifiedMilestones: string[];
   columnMappings: any;
+  contests: any[];
   settings: {
     language: string;
     currency: string;
@@ -80,6 +81,7 @@ function readStore(): ServerDataStore {
             : DEFAULT_SERVER_NOTIFICATION_SETTINGS,
         notifiedMilestones: Array.isArray(parsed.notifiedMilestones) ? parsed.notifiedMilestones : [],
         columnMappings: parsed.columnMappings || null,
+        contests: Array.isArray(parsed.contests) ? parsed.contests : [],
         settings: parsed.settings || {
           language: 'ar',
           currency: 'EGP',
@@ -103,6 +105,7 @@ function readStore(): ServerDataStore {
     notificationSettings: DEFAULT_SERVER_NOTIFICATION_SETTINGS,
     notifiedMilestones: [],
     columnMappings: null,
+    contests: [],
     settings: {
       language: 'ar',
       currency: 'EGP',
@@ -215,6 +218,50 @@ app.post('/api/target-allocation', (req, res) => {
   const updated = writeStore({ targetAllocation });
   res.json({
     success: true,
+    lastUpdated: updated.lastUpdated,
+  });
+});
+
+// 5. Stock items endpoint (/api/stock)
+app.get('/api/stock', (req, res) => {
+  const store = readStore();
+  res.json({
+    inventoryItems: store.inventoryItems,
+    lastUpdated: store.lastUpdated,
+  });
+});
+
+app.post('/api/stock', (req, res) => {
+  const { inventoryItems } = req.body;
+  if (!Array.isArray(inventoryItems)) {
+    return res.status(400).json({ error: 'inventoryItems must be an array' });
+  }
+  const updated = writeStore({ inventoryItems });
+  res.json({
+    success: true,
+    count: updated.inventoryItems.length,
+    lastUpdated: updated.lastUpdated,
+  });
+});
+
+// 6. Contests endpoint (/api/contests)
+app.get('/api/contests', (req, res) => {
+  const store = readStore();
+  res.json({
+    contests: store.contests,
+    lastUpdated: store.lastUpdated,
+  });
+});
+
+app.post('/api/contests', (req, res) => {
+  const { contests } = req.body;
+  if (!Array.isArray(contests)) {
+    return res.status(400).json({ error: 'contests must be an array' });
+  }
+  const updated = writeStore({ contests });
+  res.json({
+    success: true,
+    count: updated.contests.length,
     lastUpdated: updated.lastUpdated,
   });
 });
