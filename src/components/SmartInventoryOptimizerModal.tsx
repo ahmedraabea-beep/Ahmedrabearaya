@@ -90,6 +90,7 @@ interface SmartInventoryOptimizerModalProps {
   onClose: () => void;
   language?: Language;
   currency?: Currency;
+  isFullPage?: boolean;
 }
 
 export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModalProps> = ({
@@ -97,6 +98,7 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
   onClose,
   language = 'ar',
   currency = 'EGP',
+  isFullPage = false,
 }) => {
   const isAr = language === 'ar';
   const singleFileInputRef = useRef<HTMLInputElement>(null);

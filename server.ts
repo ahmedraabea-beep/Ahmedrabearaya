@@ -34,8 +34,20 @@ if (!fs.existsSync(DATA_DIR)) {
 
 interface ServerDataStore {
   records: any[];
+  targets: Record<string, any>;
   incentiveRules: any[];
   targetAllocation: any;
+  shifts: any[];
+  inventoryItems: any[];
+  retention: any[];
+  notificationSettings: any;
+  notifiedMilestones: string[];
+  columnMappings: any;
+  settings: {
+    language: string;
+    currency: string;
+    vatDisplayMode: string;
+  };
   lastUpdated: string;
 }
 
@@ -43,7 +55,25 @@ function readStore(): ServerDataStore {
   try {
     if (fs.existsSync(STORE_FILE)) {
       const content = fs.readFileSync(STORE_FILE, 'utf-8');
-      return JSON.parse(content);
+      const parsed = JSON.parse(content);
+      return {
+        records: Array.isArray(parsed.records) ? parsed.records : [],
+        targets: parsed.targets && typeof parsed.targets === 'object' ? parsed.targets : {},
+        incentiveRules: Array.isArray(parsed.incentiveRules) ? parsed.incentiveRules : [],
+        targetAllocation: parsed.targetAllocation || null,
+        shifts: Array.isArray(parsed.shifts) ? parsed.shifts : [],
+        inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
+        retention: Array.isArray(parsed.retention) ? parsed.retention : [],
+        notificationSettings: parsed.notificationSettings || null,
+        notifiedMilestones: Array.isArray(parsed.notifiedMilestones) ? parsed.notifiedMilestones : [],
+        columnMappings: parsed.columnMappings || null,
+        settings: parsed.settings || {
+          language: 'ar',
+          currency: 'EGP',
+          vatDisplayMode: 'afterVat',
+        },
+        lastUpdated: parsed.lastUpdated || new Date().toISOString(),
+      };
     }
   } catch (err) {
     console.error('Error reading store:', err);
@@ -51,8 +81,20 @@ function readStore(): ServerDataStore {
 
   return {
     records: [],
+    targets: {},
     incentiveRules: [],
     targetAllocation: null,
+    shifts: [],
+    inventoryItems: [],
+    retention: [],
+    notificationSettings: null,
+    notifiedMilestones: [],
+    columnMappings: null,
+    settings: {
+      language: 'ar',
+      currency: 'EGP',
+      vatDisplayMode: 'afterVat',
+    },
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -72,6 +114,24 @@ function writeStore(data: Partial<ServerDataStore>) {
     return readStore();
   }
 }
+
+// 0. Full Unified Store Endpoint
+app.get('/api/store', (req, res) => {
+  const store = readStore();
+  res.json(store);
+});
+
+app.post('/api/store', (req, res) => {
+  const payload = req.body;
+  if (!payload || typeof payload !== 'object') {
+    return res.status(400).json({ error: 'Payload must be an object' });
+  }
+  const updated = writeStore(payload);
+  res.json({
+    success: true,
+    lastUpdated: updated.lastUpdated,
+  });
+});
 
 // API Routes for cross-device sync
 
