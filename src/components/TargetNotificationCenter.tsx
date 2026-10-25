@@ -92,7 +92,7 @@ export const TargetNotificationCenter: React.FC<TargetNotificationCenterProps> =
   records,
   currency,
   language,
-  settings,
+  settings: propSettings,
   onUpdateSettings,
   onSelectEmployee,
   branchOverallRate = 0,
@@ -100,6 +100,16 @@ export const TargetNotificationCenter: React.FC<TargetNotificationCenterProps> =
   branchTotalTarget = 0,
 }) => {
   const isAr = language === 'ar';
+  const settings: NotificationSettings = propSettings || {
+    pushEnabled: false,
+    soundEnabled: true,
+    notifyOnNear90: true,
+    notifyOn100: true,
+    notifyOnDeviation20: true,
+    autoEmailOn100: false,
+    managerEmail: DEFAULT_BRANCH_MANAGER_EMAIL,
+  };
+
   const [filterTab, setFilterTab] = useState<'all' | 'deviations' | '100' | '90' | 'branch' | 'emails'>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [permissionState, setPermissionState] = useState<NotificationPermission | 'unsupported'>('default');
@@ -110,7 +120,7 @@ export const TargetNotificationCenter: React.FC<TargetNotificationCenterProps> =
   const [simulatedReports, setSimulatedReports] = useState<SimulatedEmailReport[]>(() => getSimulatedEmailReports());
   const [selectedEmailPreview, setSelectedEmailPreview] = useState<SimulatedEmailReport | null>(null);
   const [managerEmailInput, setManagerEmailInput] = useState<string>(
-    settings.managerEmail || DEFAULT_BRANCH_MANAGER_EMAIL
+    settings?.managerEmail || DEFAULT_BRANCH_MANAGER_EMAIL
   );
   const [isEditingManagerEmail, setIsEditingManagerEmail] = useState(false);
   const [sendingEmailForAlertId, setSendingEmailForAlertId] = useState<string | null>(null);
@@ -128,11 +138,11 @@ export const TargetNotificationCenter: React.FC<TargetNotificationCenterProps> =
     if (isOpen) {
       setPermissionState(getNotificationPermission());
       setSimulatedReports(getSimulatedEmailReports());
-      if (settings.managerEmail) {
+      if (settings?.managerEmail) {
         setManagerEmailInput(settings.managerEmail);
       }
     }
-  }, [isOpen, settings.managerEmail]);
+  }, [isOpen, settings?.managerEmail]);
 
   // Listen to cross-system simulated email and approved action events
   useEffect(() => {

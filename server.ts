@@ -51,6 +51,16 @@ interface ServerDataStore {
   lastUpdated: string;
 }
 
+const DEFAULT_SERVER_NOTIFICATION_SETTINGS = {
+  pushEnabled: false,
+  soundEnabled: true,
+  notifyOnNear90: true,
+  notifyOn100: true,
+  notifyOnDeviation20: true,
+  autoEmailOn100: false,
+  managerEmail: 'concorde.branch@rayatrade.com',
+};
+
 function readStore(): ServerDataStore {
   try {
     if (fs.existsSync(STORE_FILE)) {
@@ -64,7 +74,10 @@ function readStore(): ServerDataStore {
         shifts: Array.isArray(parsed.shifts) ? parsed.shifts : [],
         inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
         retention: Array.isArray(parsed.retention) ? parsed.retention : [],
-        notificationSettings: parsed.notificationSettings || null,
+        notificationSettings:
+          parsed.notificationSettings && typeof parsed.notificationSettings === 'object'
+            ? parsed.notificationSettings
+            : DEFAULT_SERVER_NOTIFICATION_SETTINGS,
         notifiedMilestones: Array.isArray(parsed.notifiedMilestones) ? parsed.notifiedMilestones : [],
         columnMappings: parsed.columnMappings || null,
         settings: parsed.settings || {
@@ -87,7 +100,7 @@ function readStore(): ServerDataStore {
     shifts: [],
     inventoryItems: [],
     retention: [],
-    notificationSettings: null,
+    notificationSettings: DEFAULT_SERVER_NOTIFICATION_SETTINGS,
     notifiedMilestones: [],
     columnMappings: null,
     settings: {

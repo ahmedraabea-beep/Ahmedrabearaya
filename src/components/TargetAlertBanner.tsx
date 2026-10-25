@@ -36,11 +36,20 @@ export const TargetAlertBanner: React.FC<TargetAlertBannerProps> = ({
   records,
   currency,
   language,
-  settings,
+  settings: propSettings,
   onOpenNotificationCenter,
   onSelectEmployee,
   branchOverallRate = 0,
 }) => {
+  const settings: NotificationSettings = propSettings || {
+    pushEnabled: false,
+    soundEnabled: true,
+    notifyOnNear90: true,
+    notifyOn100: true,
+    notifyOnDeviation20: true,
+    autoEmailOn100: false,
+    managerEmail: 'concorde.branch@rayatrade.com',
+  };
   const isAr = language === 'ar';
   const [isExpanded, setIsExpanded] = useState(true);
 

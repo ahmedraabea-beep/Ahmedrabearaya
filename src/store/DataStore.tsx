@@ -140,6 +140,10 @@ function storeReducer(state: AppStoreState, action: StoreAction): AppStoreState 
           ...state.settings,
           ...(action.payload.settings || {}),
         },
+        notificationSettings:
+          action.payload.notificationSettings && typeof action.payload.notificationSettings === 'object'
+            ? { ...DEFAULT_NOTIFICATION_SETTINGS, ...action.payload.notificationSettings }
+            : state.notificationSettings || DEFAULT_NOTIFICATION_SETTINGS,
         lastUpdated: action.payload.lastUpdated || now,
       };
 
