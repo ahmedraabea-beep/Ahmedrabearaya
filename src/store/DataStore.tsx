@@ -26,6 +26,7 @@ import {
   DEFAULT_OCTOBER_TARGET_STRUCTURE,
   enrichSalesRecords,
 } from '../data/sampleData';
+import { SEED_STORE_DATA, SEED_VERSION } from '../seedData';
 
 export interface StoreSettings {
   language: Language;
@@ -95,19 +96,19 @@ const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 };
 
 export const INITIAL_STORE_STATE: AppStoreState = {
-  records: enrichSalesRecords(INITIAL_SAMPLE_RECORDS),
-  targets: {
+  records: enrichSalesRecords(SEED_STORE_DATA?.records || INITIAL_SAMPLE_RECORDS),
+  targets: SEED_STORE_DATA?.targets || {
     'أكتوبر 2026': DEFAULT_OCTOBER_TARGET_STRUCTURE,
   },
-  incentiveRules: DEFAULT_PRODUCT_INCENTIVE_RULES,
-  targetAllocation: null,
-  shifts: [],
-  inventoryItems: [],
-  retention: [],
-  notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
+  incentiveRules: SEED_STORE_DATA?.incentiveRules || DEFAULT_PRODUCT_INCENTIVE_RULES,
+  targetAllocation: SEED_STORE_DATA?.targetAllocation || null,
+  shifts: SEED_STORE_DATA?.shifts || [],
+  inventoryItems: SEED_STORE_DATA?.inventoryItems || [],
+  retention: SEED_STORE_DATA?.retention || [],
+  notificationSettings: SEED_STORE_DATA?.notificationSettings || DEFAULT_NOTIFICATION_SETTINGS,
   notifiedMilestones: [],
   columnMappings: null,
-  settings: {
+  settings: SEED_STORE_DATA?.settings || {
     language: 'ar',
     currency: 'EGP',
     vatDisplayMode: 'afterVat',
@@ -117,7 +118,7 @@ export const INITIAL_STORE_STATE: AppStoreState = {
   selectedBranch: '',
   searchQuery: '',
   filterStatus: 'all',
-  lastUpdated: new Date().toISOString(),
+  lastUpdated: SEED_STORE_DATA?.lastUpdated || new Date().toISOString(),
   isSyncing: false,
   auditReport: null,
   validationReport: null,
@@ -377,9 +378,26 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
         console.warn('Could not load from /api/store, attempting offline cache:', err);
       }
 
-      // Offline Cache Fallback
+      // Offline / Static Hosting (Vercel) Hydration:
       if (typeof window !== 'undefined') {
         try {
+          const storedSeedVer = Number(localStorage.getItem('raya_deployed_seed_version') || '0');
+          // If code was redeployed with a newer SEED_VERSION from GitHub, hydrate immediately
+          if (SEED_VERSION > storedSeedVer && SEED_STORE_DATA?.records && SEED_STORE_DATA.records.length > 0) {
+            localStorage.setItem('raya_deployed_seed_version', String(SEED_VERSION));
+            if (isMounted) {
+              dispatch({
+                type: 'SET_FULL_STORE',
+                payload: {
+                  ...SEED_STORE_DATA,
+                  records: enrichSalesRecords(SEED_STORE_DATA.records),
+                },
+              });
+              isInitialLoad.current = false;
+              return;
+            }
+          }
+
           const cached = localStorage.getItem(STORE_CACHE_KEY);
           if (cached && isMounted) {
             const parsed = JSON.parse(cached);
@@ -500,11 +518,22 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
     dispatch({
       type: 'SET_FULL_STORE',
       payload: {
-        records: enrichSalesRecords(INITIAL_SAMPLE_RECORDS),
-        targets: {
+        records: enrichSalesRecords(SEED_STORE_DATA?.records || INITIAL_SAMPLE_RECORDS),
+        targets: SEED_STORE_DATA?.targets || {
           'أكتوبر 2026': DEFAULT_OCTOBER_TARGET_STRUCTURE,
         },
-        incentiveRules: DEFAULT_PRODUCT_INCENTIVE_RULES,
+        incentiveRules: SEED_STORE_DATA?.incentiveRules || DEFAULT_PRODUCT_INCENTIVE_RULES,
+        targetAllocation: SEED_STORE_DATA?.targetAllocation || null,
+        shifts: SEED_STORE_DATA?.shifts || [],
+        inventoryItems: SEED_STORE_DATA?.inventoryItems || [],
+        retention: SEED_STORE_DATA?.retention || [],
+        notificationSettings: SEED_STORE_DATA?.notificationSettings || DEFAULT_NOTIFICATION_SETTINGS,
+        settings: SEED_STORE_DATA?.settings || {
+          language: 'ar',
+          currency: 'EGP',
+          vatDisplayMode: 'afterVat',
+          vatMode: 'afterVat',
+        },
         lastUpdated: new Date().toISOString(),
       },
     });

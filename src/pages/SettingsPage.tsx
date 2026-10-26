@@ -3,6 +3,7 @@ import { useDataStore } from '../store/DataStore';
 import { selectDataConsistencyReport } from '../store/selectors';
 import { MobileDeviceModal } from '../components/MobileDeviceModal';
 import { TargetNotificationCenter } from '../components/TargetNotificationCenter';
+import { GitHubSettings } from '../components/GitHubSettings';
 import {
   Settings,
   Globe,
@@ -477,6 +478,9 @@ export const SettingsPage: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Module 4: Publish to GitHub & Vercel Auto-Deployment */}
+        <GitHubSettings language={language} />
       </div>
 
       {/* Modals Hosted in Settings */}
