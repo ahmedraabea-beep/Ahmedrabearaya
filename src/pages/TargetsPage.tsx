@@ -22,6 +22,7 @@ import { TargetAllocationModal } from '../components/TargetAllocationModal';
 import { OctoberTargetBanner } from '../components/OctoberTargetBanner';
 import { TargetAlertBanner } from '../components/TargetAlertBanner';
 import { BranchTotalTargetStructure } from '../types/sales';
+import { formatCurrencyNumber } from '../utils/calculations';
 
 interface TargetsPageProps {
   onOpenMonthlyReport?: () => void;
@@ -86,7 +87,7 @@ export const TargetsPage: React.FC<TargetsPageProps> = ({
   ) => {
     if (updatedStructure) {
       handleUpdateTargets(updatedStructure, newAllocations);
-    } else {
+    } else if (targetStructure) {
       handleUpdateTargets(targetStructure, newAllocations);
     }
     setIsAllocationModalOpen(false);
@@ -183,8 +184,8 @@ export const TargetsPage: React.FC<TargetsPageProps> = ({
               </h4>
               <p className="text-xs text-slate-500 mt-0.5">
                 {isAr
-                  ? 'إعادة تقسيم الـ 1,400,000 ج.م ريفينيو على فريق العمل بنسب مئوية أو مبالغ محددة'
-                  : 'Distribute target across staff with proportional rules'}
+                  ? `إعادة تقسيم ريفينيو المستهدف (${targetStructure ? formatCurrencyNumber(targetStructure.revenueTarget, currency, true, 'ar') : 'المطلوب'}) على فريق العمل بنسب مئوية أو مبالغ محددة`
+                  : 'Distribute target revenue across staff with proportional rules'}
               </p>
             </div>
 

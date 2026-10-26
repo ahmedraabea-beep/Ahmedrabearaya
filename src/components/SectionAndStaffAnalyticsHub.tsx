@@ -39,7 +39,7 @@ import { StaffPerformanceSwotComparison } from './StaffPerformanceSwotComparison
 
 interface SectionAndStaffAnalyticsHubProps {
   records: SalesRecord[];
-  targetStructure: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   currency: Currency;
   language: Language;
   vatDisplayMode?: 'afterVat' | 'beforeVat';
@@ -49,7 +49,7 @@ interface SectionAndStaffAnalyticsHubProps {
 
 export const SectionAndStaffAnalyticsHub: React.FC<SectionAndStaffAnalyticsHubProps> = ({
   records,
-  targetStructure,
+  targetStructure: propTargetStructure,
   currency,
   language,
   vatDisplayMode = 'afterVat',
@@ -57,46 +57,51 @@ export const SectionAndStaffAnalyticsHub: React.FC<SectionAndStaffAnalyticsHubPr
   onOpenMonthlyReport,
 }) => {
   const isAr = language === 'ar';
+  const targetStructure: BranchTotalTargetStructure = propTargetStructure || {
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: records[0]?.period || '',
+    daysInMonth: 30,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
+  };
   const [activeTab, setActiveTab] = useState<'sections' | 'staff' | 'financial' | 'matrix' | 'heatmap' | 'abc'>('sections');
   const [staffSubView, setStaffSubView] = useState<'swot' | 'stacked'>('swot');
   const [selectedSectionKey, setSelectedSectionKey] = useState<string | null>(null);
   const [selectedStaffName, setSelectedStaffName] = useState<string | null>(null);
   const [copiedSummary, setCopiedSummary] = useState(false);
 
-  // Filter records for active period (defaults to October)
-  const currentMonthRecords = useMemo(() => {
-    const oct = records.filter(
-      (r) => r.period && (r.period.includes('أكتوبر') || r.period.includes('Oct') || r.period.includes('10'))
-    );
-    return oct.length > 0 ? oct : records;
-  }, [records]);
+  // Records for active period
+  const currentMonthRecords = records;
 
   // Aggregate Category Totals for the branch
   const sectionMetrics = useMemo(() => {
-    const daysInMonth = targetStructure.daysInMonth || 31;
+    const daysInMonth = targetStructure.daysInMonth || 30;
     const isGross = vatDisplayMode === 'afterVat';
 
     // 1. Smartphones (Mobiles)
-    const mobileTarget = targetStructure.revenueBreakdown?.mobiles || 910000;
-    const mobileActual = currentMonthRecords.reduce((sum, r) => sum + (r.mobilesActual !== undefined && !isNaN(r.mobilesActual) ? r.mobilesActual : Math.round(r.actual * 0.65)), 0);
+    const mobileTarget = targetStructure.revenueBreakdown?.mobiles || 0;
+    const mobileActual = currentMonthRecords.reduce((sum, r) => sum + (r.mobilesActual !== undefined && !isNaN(r.mobilesActual) ? r.mobilesActual : 0), 0);
     const mobileRate = mobileTarget > 0 ? (mobileActual / mobileTarget) * 100 : 0;
     const mobileDiff = mobileActual - mobileTarget;
 
     // 2. Accessories
-    const accTarget = targetStructure.revenueBreakdown?.accessories || 252000;
-    const accActual = currentMonthRecords.reduce((sum, r) => sum + (r.accessoriesActual !== undefined && !isNaN(r.accessoriesActual) ? r.accessoriesActual : Math.round(r.actual * 0.18)), 0);
+    const accTarget = targetStructure.revenueBreakdown?.accessories || 0;
+    const accActual = currentMonthRecords.reduce((sum, r) => sum + (r.accessoriesActual !== undefined && !isNaN(r.accessoriesActual) ? r.accessoriesActual : 0), 0);
     const accRate = accTarget > 0 ? (accActual / accTarget) * 100 : 0;
     const accDiff = accActual - accTarget;
 
     // 3. Screens & Other Electronics
-    const otherTarget = targetStructure.revenueBreakdown?.other || 238000;
-    const otherActual = currentMonthRecords.reduce((sum, r) => sum + (r.otherActual !== undefined && !isNaN(r.otherActual) ? r.otherActual : Math.round(r.actual * 0.17)), 0);
+    const otherTarget = targetStructure.revenueBreakdown?.other || 0;
+    const otherActual = currentMonthRecords.reduce((sum, r) => sum + (r.otherActual !== undefined && !isNaN(r.otherActual) ? r.otherActual : 0), 0);
     const otherRate = otherTarget > 0 ? (otherActual / otherTarget) * 100 : 0;
     const otherDiff = otherActual - otherTarget;
 
     // 4. Aman Consumer Installments
-    const instTarget = targetStructure.installmentTarget || 350000;
-    const instActual = currentMonthRecords.reduce((sum, r) => sum + (r.installmentActual || 0), 0) || (targetStructure.installmentActual || 380000);
+    const instTarget = targetStructure.installmentTarget || 0;
+    const instActual = currentMonthRecords.reduce((sum, r) => sum + (r.installmentActual || 0), 0) || (targetStructure.installmentActual || 0);
     const instRate = instTarget > 0 ? (instActual / instTarget) * 100 : 0;
     const instDiff = instActual - instTarget;
 
@@ -278,7 +283,7 @@ export const SectionAndStaffAnalyticsHub: React.FC<SectionAndStaffAnalyticsHubPr
   // Copy Executive Analysis Summary to Clipboard
   const handleCopySummary = async () => {
     const text = `
-ملخص التحليل الدقيق لأداء فرع راية كونكورد بلازا (أكتوبر 2026):
+ملخص التحليل الدقيق لأداء فرع راية كونكورد بلازا (${targetStructure.period || 'الفترة المحددة'}):
 -----------------------------------------------------------
 1. إجمالي مبيعات الفرع (شامل 14% ضريبة): ${financialTotals.gross.toLocaleString()} ج.م
 2. إجمالي المبيعات قبل الضريبة (صافي): ${financialTotals.net.toLocaleString()} ج.م
@@ -1040,7 +1045,7 @@ export const SectionAndStaffAnalyticsHub: React.FC<SectionAndStaffAnalyticsHubPr
                   {isAr ? 'مصفوفة البيانات التفصيلية للأقسام والمستشارين (Full Analytical Matrix)' : 'Comprehensive Analytical Matrix'}
                 </span>
                 <span className="text-slate-500 font-mono text-[11px]">
-                  {isAr ? 'فرع راية كونكورد بلازا · أكتوبر 2026' : 'Raya Concorde Plaza · Oct 2026'}
+                  {isAr ? `فرع راية كونكورد بلازا · ${targetStructure.period || 'الفترة المحددة'}` : `Raya Concorde Plaza · ${targetStructure.period || 'Selected Period'}`}
                 </span>
               </div>
 

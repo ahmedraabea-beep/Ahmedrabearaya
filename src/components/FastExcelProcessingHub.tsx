@@ -75,7 +75,7 @@ interface FastExcelProcessingHubProps {
   currency: Currency;
   records: SalesRecord[];
   incentiveRules: ProductIncentiveRule[];
-  targetStructure: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   vatDisplayMode: 'afterVat' | 'beforeVat';
   onToggleVatMode: (mode: 'afterVat' | 'beforeVat') => void;
   onImportSalesRecords: (newRecords: SalesRecord[], mode: 'replace' | 'append') => void;
@@ -1625,8 +1625,8 @@ export const FastExcelProcessingHub: React.FC<FastExcelProcessingHubProps> = ({
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   {isAr
-                    ? `فرع راية كونكورد بلازا لشهر أكتوبر 2026 · ${targetRecords.length} مستشار مبيعات نشط`
-                    : `Raya Concorde Plaza · Active Team Members`}
+                    ? `فرع راية كونكورد بلازا · ${targetRecords.length} مستشار مبيعات نشط`
+                    : `Raya Concorde Plaza · ${targetRecords.length} Active Sales Advisors`}
                 </p>
               </div>
             </div>

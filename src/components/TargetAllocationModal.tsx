@@ -33,7 +33,7 @@ import {
 import { formatCurrencyNumber, formatPercent } from '../utils/calculations';
 import { translations } from '../utils/i18n';
 import { parseArabicOrWesternNumber } from '../utils/excelParser';
-import { CONCORD_BRANCH_NAME, DEFAULT_OCTOBER_TARGET_STRUCTURE } from '../data/sampleData';
+import { CONCORD_BRANCH_NAME } from '../data/sampleData';
 
 interface TargetAllocationModalProps {
   isOpen: boolean;
@@ -41,7 +41,7 @@ interface TargetAllocationModalProps {
   language: Language;
   currency: Currency;
   records: SalesRecord[];
-  currentTargetStructure?: BranchTotalTargetStructure;
+  currentTargetStructure?: BranchTotalTargetStructure | null;
   onApplyNewTargets: (
     allocations: { employeeId?: string; employeeName: string; target: number }[],
     updatedStructure?: BranchTotalTargetStructure
@@ -68,17 +68,26 @@ export const TargetAllocationModal: React.FC<TargetAllocationModalProps> = ({
     { id: '125177', name: 'طارق محمود', role: 'مستشار مبيعات (Sales Advisor)', percentage: 25 },
   ];
 
-  // Base config from current target structure or default
-  const baseStructure = currentTargetStructure || DEFAULT_OCTOBER_TARGET_STRUCTURE;
+  // Base config from current target structure or clean empty structure
+  const baseStructure: BranchTotalTargetStructure = currentTargetStructure || {
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: records[0]?.period || '',
+    daysInMonth: 30,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
+  };
 
-  const [targetPeriod, setTargetPeriod] = useState<string>(baseStructure.period || 'أكتوبر 2026');
-  const [daysInMonth, setDaysInMonth] = useState<number>(baseStructure.daysInMonth || 31);
+  const [targetPeriod, setTargetPeriod] = useState<string>(baseStructure.period || records[0]?.period || (isAr ? 'الفترة الحالية' : 'Current Period'));
+  const [daysInMonth, setDaysInMonth] = useState<number>(baseStructure.daysInMonth || 30);
 
   // Targets Breakdown
-  const [installmentTarget, setInstallmentTarget] = useState<number>(baseStructure.installmentTarget || 350000);
-  const [mobilesTarget, setMobilesTarget] = useState<number>(baseStructure.revenueBreakdown?.mobiles || 900000);
-  const [accessoriesTarget, setAccessoriesTarget] = useState<number>(baseStructure.revenueBreakdown?.accessories || 250000);
-  const [otherTarget, setOtherTarget] = useState<number>(baseStructure.revenueBreakdown?.other || 250000);
+  const [installmentTarget, setInstallmentTarget] = useState<number>(baseStructure.installmentTarget || 0);
+  const [mobilesTarget, setMobilesTarget] = useState<number>(baseStructure.revenueBreakdown?.mobiles || 0);
+  const [accessoriesTarget, setAccessoriesTarget] = useState<number>(baseStructure.revenueBreakdown?.accessories || 0);
+  const [otherTarget, setOtherTarget] = useState<number>(baseStructure.revenueBreakdown?.other || 0);
 
   const [method, setMethod] = useState<TargetDistributionMethod>('percentage');
   const [staffPercentages, setStaffPercentages] = useState(initialStaff);
@@ -472,7 +481,7 @@ export const TargetAllocationModal: React.FC<TargetAllocationModalProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>{isAr ? 'إعدادات الشهر المستهدف (شهر 10 - أكتوبر 2026)' : 'Target Month (Month 10 - Oct)'}</span>
+                    <span>{isAr ? `إعدادات الشهر المستهدف (${targetPeriod})` : `Target Period (${targetPeriod})`}</span>
                     <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] px-2 py-0.2 rounded-full font-mono">
                       {daysInMonth} {isAr ? 'يوماً' : 'days'}
                     </span>

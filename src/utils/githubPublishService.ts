@@ -5,6 +5,7 @@
  */
 
 import { AppStoreState } from '../store/DataStore';
+import { normalizeStore } from './normalizeStore';
 
 export interface GitHubPublishSettings {
   token: string;
@@ -112,32 +113,8 @@ export function base64ToUtf8(b64: string): string {
  */
 export function generateSeedFileContent(storeState: AppStoreState, nextVersion: number): string {
   const now = new Date().toISOString();
-
-  const safeData = {
-    records: storeState.records || [],
-    targets: storeState.targets || {},
-    incentiveRules: storeState.incentiveRules || [],
-    targetAllocation: storeState.targetAllocation || null,
-    shifts: storeState.shifts || [],
-    inventoryItems: storeState.inventoryItems || [],
-    retention: storeState.retention || [],
-    notificationSettings: {
-      pushEnabled: storeState.notificationSettings?.pushEnabled ?? false,
-      soundEnabled: storeState.notificationSettings?.soundEnabled ?? true,
-      notifyOnNear90: storeState.notificationSettings?.notifyOnNear90 ?? true,
-      notifyOn100: storeState.notificationSettings?.notifyOn100 ?? true,
-      notifyOnDeviation20: storeState.notificationSettings?.notifyOnDeviation20 ?? true,
-      autoEmailOn100: storeState.notificationSettings?.autoEmailOn100 ?? false,
-      managerEmail: storeState.notificationSettings?.managerEmail || 'concorde.branch@rayatrade.com',
-    },
-    settings: {
-      language: storeState.settings?.language || 'ar',
-      currency: storeState.settings?.currency || 'EGP',
-      vatDisplayMode: storeState.settings?.vatDisplayMode || 'afterVat',
-      vatMode: storeState.settings?.vatMode || 'afterVat',
-    },
-    lastUpdated: now,
-  };
+  const safeData = normalizeStore(storeState);
+  safeData.lastUpdated = now;
 
   return `/**
  * AUTO-GENERATED SEED DATA FILE FOR PRODUCTION & VERCEL DEPLOYMENTS

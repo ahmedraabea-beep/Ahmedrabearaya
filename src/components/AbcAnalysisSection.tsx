@@ -23,7 +23,7 @@ interface AbcAnalysisSectionProps {
   records: SalesRecord[];
   currency: Currency;
   language: Language;
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   inReportModal?: boolean;
 }
 

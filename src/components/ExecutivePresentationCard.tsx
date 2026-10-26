@@ -23,14 +23,13 @@ import {
 import { SalesRecord, Currency, Language, BranchTotalTargetStructure } from '../types/sales';
 import { formatCurrencyNumber, formatPercent } from '../utils/calculations';
 import { translations } from '../utils/i18n';
-import { DEFAULT_OCTOBER_TARGET_STRUCTURE, BRANCH_MANAGER } from '../data/sampleData';
 import { getExecutiveDateTime } from '../utils/dateFormatter';
 
 interface ExecutivePresentationCardProps {
   language: Language;
   currency: Currency;
   records: SalesRecord[];
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   onOpenMonthlyReport: () => void;
   onOpenDownloadCenter: () => void;
 }
@@ -39,7 +38,7 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
   language,
   currency,
   records,
-  targetStructure = DEFAULT_OCTOBER_TARGET_STRUCTURE,
+  targetStructure,
   onOpenMonthlyReport,
   onOpenDownloadCenter,
 }) => {
@@ -47,30 +46,27 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
   const isAr = language === 'ar';
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Active records (October Month 10)
-  const activeRecords = records.filter(
-    (r) => r.period && (r.period.includes('أكتوبر') || r.period.includes('Oct') || r.period.includes('10'))
-  );
-  const targetRecords = activeRecords.length > 0 ? activeRecords : records;
+  const activePeriod = targetStructure?.period || records[0]?.period || (isAr ? 'الفترة الحالية' : 'Current Period');
 
-  const totalActual = targetRecords.reduce((sum, r) => sum + r.actual, 0) || 1508000;
-  const totalTarget = targetStructure.revenueTarget || 1400000;
+  const totalActual = records.reduce((sum, r) => sum + r.actual, 0);
+  const totalTarget = targetStructure?.revenueTarget || targetStructure?.grandTotal || 0;
   const totalDifference = totalActual - totalTarget;
-  const achievementRate = totalTarget > 0 ? (totalActual / totalTarget) * 100 : 107.7;
+  const achievementRate = totalTarget > 0 ? (totalActual / totalTarget) * 100 : 0;
 
-  const totalBeforeVat = targetRecords.reduce(
+  const totalBeforeVat = records.reduce(
     (sum, r) => sum + (r.actualBeforeVat !== undefined ? r.actualBeforeVat : Math.round(r.actual / 1.14)),
     0
   );
-  const totalVat = targetRecords.reduce(
+  const totalVat = records.reduce(
     (sum, r) => sum + (r.vatAmount !== undefined ? r.vatAmount : r.actual - Math.round(r.actual / 1.14)),
     0
   );
-  const totalIncentives = targetRecords.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0) || 45500;
-  const totalInstallment = targetRecords.reduce((sum, r) => sum + (r.installmentActual || 0), 0) || 380000;
-
-  const incentiveRatio = totalActual > 0 ? ((totalIncentives / totalActual) * 100).toFixed(2) : '3.01';
+  const totalIncentives = records.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0);
+  const incentiveRatio = totalActual > 0 ? ((totalIncentives / totalActual) * 100).toFixed(2) : null;
   const execTime = getExecutiveDateTime();
+
+  // Distinct branch advisors from records
+  const advisors = records.length > 0 ? records : [];
 
   return (
     <section className="bg-white rounded-3xl border-2 border-slate-900 shadow-xl overflow-hidden transition-all">
@@ -95,7 +91,6 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
                 {isAr ? 'فرع كونكورد بلازا - التجمع الخامس' : 'Concorde Plaza Mall Branch'}
               </span>
 
-              {/* Boardroom Certified Date & Time Badge */}
               <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 px-2.5 py-0.5 rounded-full text-[11px] text-amber-200 font-mono">
                 <Calendar className="w-3 h-3 text-amber-400" />
                 <span>{isAr ? `${execTime.formattedDateAr} | ${execTime.hijriDateAr}` : execTime.formattedDateEn}</span>
@@ -107,15 +102,19 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
             <div className="flex items-center gap-3">
               <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {isAr
-                  ? 'ملخص الأداء المالي والبيعي - إقفال شهر أكتوبر 2026'
-                  : 'Executive Financial & Sales Performance - October 2026 Closing'}
+                  ? `ملخص الأداء المالي والبيعي - إقفال ${activePeriod}`
+                  : `Executive Financial & Sales Performance - ${activePeriod}`}
               </h2>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
-              {isAr
-                ? 'إجمالي إيرادات الفرع 1,508,000 ج.م بتحقيق 107.7% من المستهدف وفائض 108,000 ج.م. تم احتساب صافي المبيعات قبل الضريبة وضريبة القيمة المضافة 14% واعتماد حوافز المستشارين بنسبة 3.01% من الإيرادات.'
-                : 'Branch Gross Revenue 1,508,000 EGP (107.7% Achievement, +108,000 EGP Surplus). Audited pre/post 14% VAT and approved consultant incentives.'}
+              {totalTarget > 0
+                ? isAr
+                  ? `إجمالي إيرادات الفرع ${formatCurrencyNumber(totalActual, currency, true, language)} بنسبة تحقيق ${formatPercent(achievementRate)} من المستهدف (${formatCurrencyNumber(totalTarget, currency, true, language)}). صافي المبيعات قبل الضريبة ${formatCurrencyNumber(totalBeforeVat, currency, true, language)} وضريبة القيمة المضافة ${formatCurrencyNumber(totalVat, currency, true, language)}.`
+                  : `Branch revenue ${formatCurrencyNumber(totalActual, currency, true, language)} with ${formatPercent(achievementRate)} achievement of target. Net before VAT: ${formatCurrencyNumber(totalBeforeVat, currency, true, language)}.`
+                : isAr
+                ? `إجمالي مبيعات الفرع ${formatCurrencyNumber(totalActual, currency, true, language)}. (لم يُحدد مستهدف بعد لهذه الفترة).`
+                : `Total branch sales: ${formatCurrencyNumber(totalActual, currency, true, language)}.`}
             </p>
           </div>
 
@@ -166,7 +165,13 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
               </div>
               <div className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md w-fit">
                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                <span>{isAr ? `تجاوز التارجت (+${formatCurrencyNumber(totalDifference, currency, true, language)})` : `+${formatCurrencyNumber(totalDifference, currency, true, language)} Surplus`}</span>
+                <span>
+                  {totalTarget > 0
+                    ? isAr
+                      ? `${totalDifference >= 0 ? 'فائض' : 'عجز'} (${totalDifference >= 0 ? '+' : ''}${formatCurrencyNumber(totalDifference, currency, true, language)})`
+                      : `${totalDifference >= 0 ? '+' : ''}${formatCurrencyNumber(totalDifference, currency, true, language)}`
+                    : isAr ? 'غير متاح (لا يوجد تارجت)' : 'No target'}
+                </span>
               </div>
             </div>
 
@@ -190,11 +195,11 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
                 {isAr ? 'نسبة تحقيق التارجت' : 'Target Achievement Rate'}
               </span>
               <div className="mt-1 text-xl sm:text-2xl font-black text-emerald-600 font-mono tabular-nums">
-                {formatPercent(achievementRate)}
+                {totalTarget > 0 ? formatPercent(achievementRate) : (isAr ? 'غير متاح' : 'N/A')}
               </div>
               <div className="mt-1.5 text-[11px] text-slate-600 font-mono">
                 <span>{isAr ? 'التارجت المطلوب:' : 'Target:'} </span>
-                <strong>{formatCurrencyNumber(totalTarget, currency, true, language)}</strong>
+                <strong>{totalTarget > 0 ? formatCurrencyNumber(totalTarget, currency, true, language) : (isAr ? 'غير متاح' : 'N/A')}</strong>
               </div>
             </div>
 
@@ -208,58 +213,57 @@ export const ExecutivePresentationCard: React.FC<ExecutivePresentationCardProps>
               </div>
               <div className="mt-1.5 text-[11px] text-slate-600 font-mono">
                 <span>{isAr ? 'نسبة الحافز من الإيراد:' : 'Incentive Ratio:'} </span>
-                <strong className="text-amber-700">{incentiveRatio}%</strong>
+                <strong className="text-amber-700">{incentiveRatio !== null ? `${incentiveRatio}%` : (isAr ? 'غير متاح' : 'N/A')}</strong>
               </div>
             </div>
           </div>
 
-          {/* 3 Official Sales Advisors Executive Summary */}
+          {/* Sales Advisors Executive Summary (From Actual Records) */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-emerald-600" />
                 <h3 className="text-xs sm:text-sm font-bold text-slate-900">
-                  {isAr ? 'نتائج أداء مستشاري المبيعات بفرع كونكورد بلازا (3 من 3 محققين بنسبة 100%)' : 'Concorde Plaza Sales Advisors (3/3 Achievers at 100%)'}
+                  {isAr ? `نتائج أداء مستشاري المبيعات (${advisors.length} مستشار)` : `Concorde Plaza Sales Advisors (${advisors.length} Active)`}
                 </h3>
               </div>
-
-              <div className="flex items-center gap-2 text-[11px] text-slate-500">
-                <span>{isAr ? 'إشراف مدير الفرع:' : 'Branch Manager:'}</span>
-                <strong className="text-slate-800">{isAr ? BRANCH_MANAGER.name : BRANCH_MANAGER.nameEn}</strong>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {[
-                { name: 'أحمد ربيع سيد', id: '140729', role: 'مستشار مبيعات أول', target: 560000, actual: 625000, rate: 111.6, incentive: 21500 },
-                { name: 'عمرو عبد الحليم', id: '41308', role: 'مستشار مبيعات', target: 490000, actual: 515000, rate: 105.1, incentive: 14800 },
-                { name: 'طارق محمود', id: '125177', role: 'مستشار مبيعات', target: 350000, actual: 368000, rate: 105.1, incentive: 9200 },
-              ].map((adv) => (
-                <div key={adv.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-900">{adv.name}</span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        {adv.rate}%
+            {advisors.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {advisors.map((adv) => (
+                  <div key={adv.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-slate-900">{adv.employee}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          adv.isAchieved ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'
+                        }`}>
+                          {adv.target > 0 ? `${adv.achievementRate.toFixed(1)}%` : (isAr ? 'غير متاح' : 'N/A')}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        <span>{t.jobId}: </span>
+                        <strong className="text-slate-700">{adv.employeeId || (isAr ? 'غير متاح' : 'N/A')}</strong>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-600">
+                        {formatCurrencyNumber(adv.actual, currency, true, language)}
+                      </span>
+                      <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                        +{formatCurrencyNumber(adv.earnedIncentive || 0, currency, true, language)}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      <span>{t.jobId}: </span>
-                      <strong className="text-slate-700">{adv.id}</strong> · {adv.role}
-                    </div>
                   </div>
-
-                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-slate-600">
-                      {formatCurrencyNumber(adv.actual, currency, true, language)}
-                    </span>
-                    <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-                      +{formatCurrencyNumber(adv.incentive, currency, true, language)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-xs text-slate-400 font-mono">
+                {isAr ? 'لا توجد بيانات مستشارين مسجلة لهذه الفترة' : 'No advisor records for this period'}
+              </div>
+            )}
           </div>
 
           {/* Official Audit Stamp Bar */}

@@ -33,10 +33,11 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 interface ServerDataStore {
+  schemaVersion: number;
   records: any[];
   targets: Record<string, any>;
   incentiveRules: any[];
-  targetAllocation: any;
+  targetAllocation: any[];
   shifts: any[];
   inventoryItems: any[];
   retention: any[];
@@ -62,67 +63,66 @@ const DEFAULT_SERVER_NOTIFICATION_SETTINGS = {
   managerEmail: 'concorde.branch@rayatrade.com',
 };
 
+function normalizeServerStore(parsed: any): ServerDataStore {
+  if (!parsed || typeof parsed !== 'object') parsed = {};
+
+  let targetAllocation: any[] = [];
+  if (Array.isArray(parsed.targetAllocation)) {
+    targetAllocation = parsed.targetAllocation;
+  } else if (parsed.targetAllocation && typeof parsed.targetAllocation === 'object') {
+    if (Array.isArray(parsed.targetAllocation.allocations)) {
+      targetAllocation = parsed.targetAllocation.allocations;
+    }
+  }
+
+  return {
+    schemaVersion: 2,
+    records: Array.isArray(parsed.records) ? parsed.records : [],
+    targets: parsed.targets && typeof parsed.targets === 'object' ? parsed.targets : {},
+    incentiveRules: Array.isArray(parsed.incentiveRules) ? parsed.incentiveRules : [],
+    targetAllocation,
+    shifts: Array.isArray(parsed.shifts) ? parsed.shifts : [],
+    inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
+    retention: Array.isArray(parsed.retention) ? parsed.retention : [],
+    notificationSettings:
+      parsed.notificationSettings && typeof parsed.notificationSettings === 'object'
+        ? parsed.notificationSettings
+        : DEFAULT_SERVER_NOTIFICATION_SETTINGS,
+    notifiedMilestones: Array.isArray(parsed.notifiedMilestones) ? parsed.notifiedMilestones : [],
+    columnMappings: parsed.columnMappings || null,
+    contests: Array.isArray(parsed.contests) ? parsed.contests : [],
+    settings: parsed.settings || {
+      language: 'ar',
+      currency: 'EGP',
+      vatDisplayMode: 'afterVat',
+    },
+    lastUpdated: parsed.lastUpdated || new Date().toISOString(),
+  };
+}
+
 function readStore(): ServerDataStore {
   try {
     if (fs.existsSync(STORE_FILE)) {
       const content = fs.readFileSync(STORE_FILE, 'utf-8');
       const parsed = JSON.parse(content);
-      return {
-        records: Array.isArray(parsed.records) ? parsed.records : [],
-        targets: parsed.targets && typeof parsed.targets === 'object' ? parsed.targets : {},
-        incentiveRules: Array.isArray(parsed.incentiveRules) ? parsed.incentiveRules : [],
-        targetAllocation: parsed.targetAllocation || null,
-        shifts: Array.isArray(parsed.shifts) ? parsed.shifts : [],
-        inventoryItems: Array.isArray(parsed.inventoryItems) ? parsed.inventoryItems : [],
-        retention: Array.isArray(parsed.retention) ? parsed.retention : [],
-        notificationSettings:
-          parsed.notificationSettings && typeof parsed.notificationSettings === 'object'
-            ? parsed.notificationSettings
-            : DEFAULT_SERVER_NOTIFICATION_SETTINGS,
-        notifiedMilestones: Array.isArray(parsed.notifiedMilestones) ? parsed.notifiedMilestones : [],
-        columnMappings: parsed.columnMappings || null,
-        contests: Array.isArray(parsed.contests) ? parsed.contests : [],
-        settings: parsed.settings || {
-          language: 'ar',
-          currency: 'EGP',
-          vatDisplayMode: 'afterVat',
-        },
-        lastUpdated: parsed.lastUpdated || new Date().toISOString(),
-      };
+      return normalizeServerStore(parsed);
     }
   } catch (err) {
     console.error('Error reading store:', err);
   }
 
-  return {
-    records: [],
-    targets: {},
-    incentiveRules: [],
-    targetAllocation: null,
-    shifts: [],
-    inventoryItems: [],
-    retention: [],
-    notificationSettings: DEFAULT_SERVER_NOTIFICATION_SETTINGS,
-    notifiedMilestones: [],
-    columnMappings: null,
-    contests: [],
-    settings: {
-      language: 'ar',
-      currency: 'EGP',
-      vatDisplayMode: 'afterVat',
-    },
-    lastUpdated: new Date().toISOString(),
-  };
+  return normalizeServerStore({});
 }
 
 function writeStore(data: Partial<ServerDataStore>) {
   try {
     const current = readStore();
-    const updated: ServerDataStore = {
+    const merged = {
       ...current,
       ...data,
       lastUpdated: new Date().toISOString(),
     };
+    const updated = normalizeServerStore(merged);
     fs.writeFileSync(STORE_FILE, JSON.stringify(updated, null, 2), 'utf-8');
     return updated;
   } catch (err) {

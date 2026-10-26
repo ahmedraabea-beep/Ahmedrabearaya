@@ -325,57 +325,41 @@
       "isAchieved": true
     }
   ],
-  "incentiveRules": [],
-  "targetAllocation": {
-    "branchName": "راية - فرع كونكورد بلازا",
-    "grandTotal": 1750000,
-    "installmentTarget": 350000,
-    "revenueTarget": 1400000,
-    "revenueBreakdown": {
-      "mobiles": 900000,
-      "accessories": 250000,
-      "other": 250000
+  "targetAllocation": [
+    {
+      "employeeId": "140729",
+      "employeeName": "أحمد ربيع سيد",
+      "percentage": 40,
+      "targetAmount": 560000,
+      "dailyTarget": 18065,
+      "mobilesShare": 360000,
+      "accessoriesShare": 100000,
+      "otherShare": 100000,
+      "role": "مستشار مبيعات أول"
     },
-    "period": "أكتوبر 2026",
-    "daysInMonth": 31,
-    "dailyRevenueTarget": 45161,
-    "dailyGrandTotalTarget": 56452,
-    "method": "percentage",
-    "allocations": [
-      {
-        "employeeId": "140729",
-        "employeeName": "أحمد ربيع سيد",
-        "percentage": 40,
-        "targetAmount": 560000,
-        "dailyTarget": 18065,
-        "mobilesShare": 360000,
-        "accessoriesShare": 100000,
-        "otherShare": 100000,
-        "role": "مستشار مبيعات أول"
-      },
-      {
-        "employeeId": "41308",
-        "employeeName": "عمرو عبد الحليم",
-        "percentage": 35,
-        "targetAmount": 490000,
-        "dailyTarget": 15806,
-        "mobilesShare": 315000,
-        "accessoriesShare": 87500,
-        "otherShare": 87500,
-        "role": "مستشار مبيعات"
-      },
-      {
-        "employeeId": "125177",
-        "employeeName": "طارق محمود",
-        "percentage": 25,
-        "targetAmount": 350000,
-        "dailyTarget": 11290,
-        "mobilesShare": 225000,
-        "accessoriesShare": 62500,
-        "otherShare": 62500,
-        "role": "مستشار مبيعات"
-      }
-    ]
-  },
-  "lastUpdated": "2026-10-14T00:30:00.000Z"
+    {
+      "employeeId": "41308",
+      "employeeName": "عمرو عبد الحليم",
+      "percentage": 35,
+      "targetAmount": 490000,
+      "dailyTarget": 15806,
+      "mobilesShare": 315000,
+      "accessoriesShare": 87500,
+      "otherShare": 87500,
+      "role": "مستشار مبيعات"
+    },
+    {
+      "employeeId": "125177",
+      "employeeName": "طارق محمود",
+      "percentage": 25,
+      "targetAmount": 350000,
+      "dailyTarget": 11290,
+      "mobilesShare": 225000,
+      "accessoriesShare": 62500,
+      "otherShare": 62500,
+      "role": "مستشار مبيعات"
+    }
+  ],
+  "schemaVersion": 2,
+  "lastUpdated": "2026-10-26T15:48:00.000Z"
 }

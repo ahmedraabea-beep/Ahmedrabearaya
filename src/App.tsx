@@ -19,7 +19,7 @@ import { IncentiveBreakdownModal } from './components/IncentiveBreakdownModal';
 import { TargetAllocationModal } from './components/TargetAllocationModal';
 import { DownloadManagerNotification } from './components/DownloadManagerNotification';
 import { AndroidMobileShell } from './components/AndroidMobileShell';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
 import { DashboardPage } from './pages/DashboardPage';
@@ -127,63 +127,95 @@ function AppContent() {
     state.targets['2026-10'] ||
     Object.values(state.targets)[0];
 
-  // Route renderer mapping
+  // Route renderer mapping with isolated PageErrorBoundary for each of the 9 pages
   const renderCurrentPage = () => {
     switch (currentRoute) {
       case '/':
         return (
-          <DashboardPage
-            onOpenUpload={() => setIsUploadModalOpen(true)}
-            onOpenAddRecord={() => {
-              setRecordToEdit(null);
-              setIsRecordModalOpen(true);
-            }}
-            onOpenMonthlyReport={() => setIsMonthlyReportModalOpen(true)}
-            onOpenExport={() => setIsDownloadCenterOpen(true)}
-          />
+          <PageErrorBoundary pageName="Dashboard" pageNameAr="لوحة التحكم التنفيذية">
+            <DashboardPage
+              onOpenUpload={() => setIsUploadModalOpen(true)}
+              onOpenAddRecord={() => {
+                setRecordToEdit(null);
+                setIsRecordModalOpen(true);
+              }}
+              onOpenMonthlyReport={() => setIsMonthlyReportModalOpen(true)}
+              onOpenExport={() => setIsDownloadCenterOpen(true)}
+            />
+          </PageErrorBoundary>
         );
       case '/sales':
         return (
-          <SalesPage
-            onOpenAddRecord={() => {
-              setRecordToEdit(null);
-              setIsRecordModalOpen(true);
-            }}
-            onEditRecord={(rec: SalesRecord) => {
-              setRecordToEdit(rec);
-              setIsRecordModalOpen(true);
-            }}
-          />
+          <PageErrorBoundary pageName="Sales" pageNameAr="سجل المبيعات والعمليات">
+            <SalesPage
+              onOpenAddRecord={() => {
+                setRecordToEdit(null);
+                setIsRecordModalOpen(true);
+              }}
+              onEditRecord={(rec: SalesRecord) => {
+                setRecordToEdit(rec);
+                setIsRecordModalOpen(true);
+              }}
+            />
+          </PageErrorBoundary>
         );
       case '/targets':
-        return <TargetsPage />;
+        return (
+          <PageErrorBoundary pageName="Targets" pageNameAr="مدير الأهداف والمحقق الفعلي">
+            <TargetsPage />
+          </PageErrorBoundary>
+        );
       case '/staff':
         return (
-          <StaffPage
-            onSelectEmployeeIncentive={(rec: SalesRecord) => setSelectedIncentiveRecord(rec)}
-          />
+          <PageErrorBoundary pageName="Staff" pageNameAr="فريق العمل ومستشاري المبيعات">
+            <StaffPage
+              onSelectEmployeeIncentive={(rec: SalesRecord) => setSelectedIncentiveRecord(rec)}
+            />
+          </PageErrorBoundary>
         );
       case '/incentives':
-        return <IncentivesPage />;
+        return (
+          <PageErrorBoundary pageName="Incentives" pageNameAr="حوافز وعمولات راية">
+            <IncentivesPage />
+          </PageErrorBoundary>
+        );
       case '/analytics':
-        return <AnalyticsPage />;
+        return (
+          <PageErrorBoundary pageName="Analytics" pageNameAr="التحليلات ومؤشرات الأداء">
+            <AnalyticsPage />
+          </PageErrorBoundary>
+        );
       case '/inventory':
-        return <InventoryPage />;
+        return (
+          <PageErrorBoundary pageName="Inventory" pageNameAr="إدارة المخزون والأرصدة">
+            <InventoryPage />
+          </PageErrorBoundary>
+        );
       case '/reports':
-        return <ReportsPage />;
+        return (
+          <PageErrorBoundary pageName="Reports" pageNameAr="التقارير الشهرية والتنفيذية">
+            <ReportsPage />
+          </PageErrorBoundary>
+        );
       case '/settings':
-        return <SettingsPage />;
+        return (
+          <PageErrorBoundary pageName="Settings" pageNameAr="إعدادات المنظومة وتوحيد البيانات">
+            <SettingsPage />
+          </PageErrorBoundary>
+        );
       default:
         return (
-          <DashboardPage
-            onOpenUpload={() => setIsUploadModalOpen(true)}
-            onOpenAddRecord={() => {
-              setRecordToEdit(null);
-              setIsRecordModalOpen(true);
-            }}
-            onOpenMonthlyReport={() => setIsMonthlyReportModalOpen(true)}
-            onOpenExport={() => setIsDownloadCenterOpen(true)}
-          />
+          <PageErrorBoundary pageName="Dashboard" pageNameAr="لوحة التحكم التنفيذية">
+            <DashboardPage
+              onOpenUpload={() => setIsUploadModalOpen(true)}
+              onOpenAddRecord={() => {
+                setRecordToEdit(null);
+                setIsRecordModalOpen(true);
+              }}
+              onOpenMonthlyReport={() => setIsMonthlyReportModalOpen(true)}
+              onOpenExport={() => setIsDownloadCenterOpen(true)}
+            />
+          </PageErrorBoundary>
         );
     }
   };

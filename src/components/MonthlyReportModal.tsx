@@ -27,7 +27,7 @@ import {
 import { SalesRecord, Currency, Language, BranchTotalTargetStructure } from '../types/sales';
 import { formatCurrencyNumber, formatPercent } from '../utils/calculations';
 import { translations } from '../utils/i18n';
-import { CONCORD_BRANCH_NAME, DEFAULT_OCTOBER_TARGET_STRUCTURE } from '../data/sampleData';
+import { CONCORD_BRANCH_NAME } from '../data/sampleData';
 import { getExecutiveDateTime } from '../utils/dateFormatter';
 import { AbcAnalysisSection } from './AbcAnalysisSection';
 
@@ -37,7 +37,7 @@ interface MonthlyReportModalProps {
   records: SalesRecord[];
   currency: Currency;
   language: Language;
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
 }
 
 export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
@@ -46,35 +46,38 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
   records,
   currency,
   language,
-  targetStructure = DEFAULT_OCTOBER_TARGET_STRUCTURE,
+  targetStructure,
 }) => {
   const t = translations[language];
   const reportRef = useRef<HTMLDivElement>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  // Extract unique periods from records, prioritizing October (Month 10)
+  // Extract unique periods from records
   const availablePeriods = useMemo(() => {
     const set = new Set<string>();
     records.forEach((r) => {
       if (r.period) set.add(r.period);
     });
-    const list = Array.from(set);
-    return list.sort((a, b) => {
-      if (a.includes('أكتوبر') || a.includes('Oct') || a.includes('10')) return -1;
-      if (b.includes('أكتوبر') || b.includes('Oct') || b.includes('10')) return 1;
-      return b.localeCompare(a);
-    });
+    return Array.from(set);
   }, [records]);
 
-  // Default to October 2026 (شهر 10) if available
+  // Default to the first available period or 'all'
   const [selectedPeriod, setSelectedPeriod] = useState<string>(() => {
-    const hasOct = records.some((r) => r.period && (r.period.includes('أكتوبر') || r.period.includes('Oct')));
-    return hasOct ? 'أكتوبر 2026' : 'all';
+    return availablePeriods[0] || 'all';
   });
 
-  // Default to the first period if available and not 'all'
-  const activePeriod = selectedPeriod === 'all' ? (availablePeriods[0] || 'أكتوبر 2026') : selectedPeriod;
-  const isOctoberReport = activePeriod.includes('أكتوبر') || activePeriod.includes('Oct') || activePeriod.includes('10');
-  const reportDaysInMonth = isOctoberReport ? 31 : 30;
+  const activePeriod = selectedPeriod === 'all' ? (availablePeriods[0] || (language === 'ar' ? 'الفترة المعتمدة' : 'Official Period')) : selectedPeriod;
+  const reportDaysInMonth = targetStructure?.daysInMonth || 30;
+
+  const safeTarget: BranchTotalTargetStructure = targetStructure || {
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: activePeriod,
+    daysInMonth: reportDaysInMonth,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
+  };
 
   // Filter records by period if specific period is selected
   const periodRecords = useMemo(() => {
@@ -360,17 +363,15 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                     <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       {selectedPeriod === 'all'
                         ? language === 'ar'
-                          ? 'التقرير المالي المعتمد (إقفال أكتوبر 2026)'
-                          : 'Official Closing Report (October 2026)'
+                          ? `التقرير المالي المعتمد (${activePeriod})`
+                          : `Official Closing Report (${activePeriod})`
                         : selectedPeriod}
                     </span>
                   </div>
-                  {isOctoberReport && (
-                    <div className="flex items-center gap-2 justify-between text-[11px] text-blue-800 font-bold bg-blue-50/80 px-2 py-0.5 rounded border border-blue-200">
-                      <span>{language === 'ar' ? 'عدد أيام الشهر:' : 'Days in Month:'}</span>
-                      <span>{reportDaysInMonth} {language === 'ar' ? 'يوماً (شهر 10)' : 'days (Month 10)'}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 justify-between text-[11px] text-blue-800 font-bold bg-blue-50/80 px-2 py-0.5 rounded border border-blue-200">
+                    <span>{language === 'ar' ? 'عدد أيام الفترة:' : 'Days in Period:'}</span>
+                    <span>{reportDaysInMonth} {language === 'ar' ? 'يوماً' : 'days'}</span>
+                  </div>
                   <div className="flex items-center gap-2 justify-between text-[11px] text-slate-400 font-mono">
                     <span>{reportTimestamp.refCode}</span>
                     <span>{reportTimestamp.dateStr}</span>
@@ -469,7 +470,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                   </h2>
                 </div>
                 <div className="text-[11px] text-slate-500 font-mono">
-                  {language === 'ar' ? `شهر 10 (${targetStructure.daysInMonth} يوماً)` : `Month 10 (${targetStructure.daysInMonth}d)`}
+                  {language === 'ar' ? `${activePeriod} (${safeTarget.daysInMonth} يوماً)` : `${activePeriod} (${safeTarget.daysInMonth}d)`}
                 </div>
               </div>
 
@@ -482,7 +483,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                     <span className="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.2 rounded font-mono">100%</span>
                   </div>
                   <div className="text-base font-extrabold text-blue-950 font-mono tabular-nums">
-                    {formatCurrencyNumber(targetStructure.grandTotal, currency, true, language)}
+                    {formatCurrencyNumber(safeTarget.grandTotal, currency, true, language)}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">
                     {language === 'ar' ? 'ريفينيو + تقسيط كلي' : 'Revenue + Installment'}
@@ -501,7 +502,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                     </span>
                   </div>
                   <div className="text-base font-black text-amber-950 font-mono tabular-nums">
-                    {formatCurrencyNumber(targetStructure.installmentTarget, currency, true, language)}
+                    {formatCurrencyNumber(safeTarget.installmentTarget, currency, true, language)}
                   </div>
                   <div className="text-[10px] text-amber-800 mt-0.5">
                     {language === 'ar' ? '🔒 تارجت جماعي للفرع، لا يوزع فردياً' : 'Branch goal, not split individually'}
@@ -513,14 +514,14 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                   <div className="flex items-center justify-between text-[11px] text-emerald-950 font-bold mb-1">
                     <span>{language === 'ar' ? 'إجمالي تارجت الريفينيو:' : 'Revenue Target:'}</span>
                     <span className="bg-emerald-200/80 text-emerald-900 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                      {language === 'ar' ? 'موزع على 3 موظفين' : '3 Staff'}
+                      {language === 'ar' ? 'موزع على المستشارين' : 'Sales Staff'}
                     </span>
                   </div>
                   <div className="text-base font-black text-emerald-950 font-mono tabular-nums">
-                    {formatCurrencyNumber(targetStructure.revenueTarget, currency, true, language)}
+                    {formatCurrencyNumber(safeTarget.revenueTarget, currency, true, language)}
                   </div>
                   <div className="text-[10px] text-emerald-800 mt-0.5">
-                    {language === 'ar' ? `المعدل: ${formatCurrencyNumber(Math.round(targetStructure.revenueTarget / targetStructure.daysInMonth), currency, true, language)}/يوم` : 'Daily rate'}
+                    {language === 'ar' ? `المعدل: ${formatCurrencyNumber(Math.round(safeTarget.revenueTarget / (safeTarget.daysInMonth || 30)), currency, true, language)}/يوم` : 'Daily rate'}
                   </div>
                 </div>
               </div>
@@ -537,7 +538,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                       {language === 'ar' ? 'موبايلات' : 'Mobiles'}
                     </span>
                     <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                      {formatCurrencyNumber(targetStructure.revenueBreakdown.mobiles, currency, true, language)}
+                      {formatCurrencyNumber(safeTarget.revenueBreakdown.mobiles, currency, true, language)}
                     </span>
                   </div>
 
@@ -547,7 +548,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                       {language === 'ar' ? 'إكسسوارات' : 'Accessories'}
                     </span>
                     <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                      {formatCurrencyNumber(targetStructure.revenueBreakdown.accessories, currency, true, language)}
+                      {formatCurrencyNumber(safeTarget.revenueBreakdown.accessories, currency, true, language)}
                     </span>
                   </div>
 
@@ -557,7 +558,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                       {language === 'ar' ? 'أخرى (شاشات/تكييفات)' : 'Other (TV/AC)'}
                     </span>
                     <span className="font-bold text-slate-900 text-xs sm:text-sm">
-                      {formatCurrencyNumber(targetStructure.revenueBreakdown.other, currency, true, language)}
+                      {formatCurrencyNumber(safeTarget.revenueBreakdown.other, currency, true, language)}
                     </span>
                   </div>
                 </div>
@@ -837,7 +838,7 @@ export const MonthlyReportModal: React.FC<MonthlyReportModalProps> = ({
                 records={periodRecords}
                 currency={currency}
                 language={language}
-                targetStructure={targetStructure}
+                targetStructure={safeTarget}
                 inReportModal={true}
               />
             </div>

@@ -34,7 +34,6 @@ import {
   SmartAlternativeMapping,
 } from '../types/inventory';
 import {
-  DEFAULT_CONCORDE_INVENTORY_ITEMS,
   loadSavedConcordeInventoryItems,
   saveConcordeInventoryItems,
   executeInventoryOptimization,
@@ -48,7 +47,7 @@ import * as XLSX from 'xlsx';
 interface RayaCorporateOptimizerDashboardProps {
   language?: Language;
   currency?: Currency;
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   totalActualSales?: number;
   items?: InventoryItem[];
   onUpdateItems?: (items: InventoryItem[], fileName?: string) => void;
@@ -58,16 +57,16 @@ export const RayaCorporateOptimizerDashboard: React.FC<RayaCorporateOptimizerDas
   language = 'ar',
   currency = 'EGP',
   targetStructure = {
-    grandTotal: 1750000,
-    installmentTarget: 350000,
-    revenueTarget: 1400000,
-    revenueBreakdown: { mobiles: 900000, accessories: 250000, other: 250000 },
-    period: 'أكتوبر 2026',
-    daysInMonth: 31,
-    dailyRevenueTarget: 45161,
-    dailyGrandTotalTarget: 56452,
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: '',
+    daysInMonth: 30,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
   },
-  totalActualSales = 1489450,
+  totalActualSales = 0,
   items: externalItems,
   onUpdateItems,
 }) => {
@@ -108,14 +107,25 @@ export const RayaCorporateOptimizerDashboard: React.FC<RayaCorporateOptimizerDas
   const [simAmanInstallmentBoostEgp, setSimAmanInstallmentBoostEgp] = useState<number>(60000); // EGP additional Aman installment sales
 
   // Execute optimization report
+  const safeTarget: BranchTotalTargetStructure = targetStructure || {
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: '',
+    daysInMonth: 30,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
+  };
+
   const report: InventoryAnalysisReport = useMemo(() => {
     return executeInventoryOptimization(items);
   }, [items]);
 
   // Derived KPI calculations
   const totalConcordeSales = totalActualSales || report.totalConcordeStockValueEgp;
-  const targetRevenue = targetStructure.revenueTarget || 1400000;
-  const achievementRate = Number(((totalConcordeSales / targetRevenue) * 100).toFixed(1));
+  const targetRevenue = safeTarget.revenueTarget || 0;
+  const achievementRate = targetRevenue > 0 ? Number(((totalConcordeSales / targetRevenue) * 100).toFixed(1)) : 0;
   const urgentItemsCount = report.urgentTransfers.length;
   const overstockItemsCount = report.overstockItems.length;
 
@@ -241,15 +251,16 @@ export const RayaCorporateOptimizerDashboard: React.FC<RayaCorporateOptimizerDas
   };
 
   const handleResetToRayaDefault = () => {
-    saveConcordeInventoryItems(DEFAULT_CONCORDE_INVENTORY_ITEMS);
-    setInternalItems(DEFAULT_CONCORDE_INVENTORY_ITEMS);
-    onUpdateItems?.(DEFAULT_CONCORDE_INVENTORY_ITEMS);
+    const baseItems = externalItems || [];
+    saveConcordeInventoryItems(baseItems);
+    setInternalItems(baseItems);
+    onUpdateItems?.(baseItems);
     setSearchQuery('');
     setNotificationType('success');
     setNotificationMsg(
       isAr
-        ? 'تمت استعادة بيانات فرع راية كونكورد بلازا المعتمدة بنجاح.'
-        : 'Restored default Raya Concorde Plaza inventory records.'
+        ? 'تمت إعادة ضبط قائمة المخزون.'
+        : 'Inventory list refreshed.'
     );
     setTimeout(() => setNotificationMsg(null), 4000);
   };
@@ -492,7 +503,7 @@ ${report.smartAlternatives
             <div className="flex items-center gap-2 text-xs text-slate-500 mt-2 font-medium">
               <span className="text-emerald-700 font-bold">محقق الفرع الفعلي</span>
               <span>·</span>
-              <span>الفترة: {targetStructure.period || 'أكتوبر 2026'}</span>
+              <span>الفترة: {safeTarget.period || (isAr ? 'غير محدد' : 'N/A')}</span>
             </div>
             <div className="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
               <div

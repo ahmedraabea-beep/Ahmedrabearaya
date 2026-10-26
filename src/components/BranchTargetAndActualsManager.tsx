@@ -34,7 +34,7 @@ interface BranchTargetAndActualsManagerProps {
   language: Language;
   currency: Currency;
   records: SalesRecord[];
-  targetStructure: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   allocations: EmployeeTargetAllocation[];
   onUpdateTargetStructure: (
     updatedStructure: BranchTotalTargetStructure,
@@ -59,17 +59,41 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
   onToggleVatMode,
 }) => {
   const isAr = language === 'ar';
+
+  if (!targetStructure || (!targetStructure.grandTotal && !targetStructure.revenueTarget)) {
+    return (
+      <div className="bg-white rounded-2xl border border-amber-300 p-8 text-center space-y-4 shadow-sm">
+        <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+          <Target className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-black text-slate-900">
+            {isAr ? 'لم يتم تحديد مستهدف لهذا الشهر بعد' : 'No target defined for this month'}
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            {isAr
+              ? 'يجب تحديد هيكل تارجت الفرع (الريفينيو والتقسيط وتوزيع المنتجات) للبدء في قياس المحقق ومتابعة الإنجاز.'
+              : 'Please set the branch target structure to begin tracking achievement.'}
+          </p>
+        </div>
+        <button
+          onClick={onOpenTargetModal}
+          className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+        >
+          <Target className="w-4 h-4" />
+          <span>{isAr ? 'حدد تارجت الشهر' : 'Set Month Target'}</span>
+        </button>
+      </div>
+    );
+  }
+
   const allocations = Array.isArray(propAllocations) && propAllocations.length > 0 ? propAllocations : [
     { employeeId: '140729', employeeName: 'أحمد ربيع سيد', percentage: 40, targetAmount: 560000 },
     { employeeId: '41308', employeeName: 'عمرو عبد الحليم', percentage: 35, targetAmount: 490000 },
     { employeeId: '125177', employeeName: 'طارق محمود', percentage: 25, targetAmount: 350000 },
   ];
-  const daysInMonth = targetStructure.daysInMonth || 31;
-
-  // Filter October records (Month 10)
-  const octoberRecords = records.filter(
-    (r) => r.period && (r.period.includes('أكتوبر') || r.period.includes('Oct') || r.period.includes('10'))
-  );
+  const daysInMonth = targetStructure.daysInMonth || 30;
+  const currentPeriod = targetStructure.period || records[0]?.period || (isAr ? 'الفترة المحددة' : 'Selected Period');
 
   // Quick inline edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -106,7 +130,7 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
       dailyGrandTotalTarget: Math.round(computedEditGrandTotal / daysInMonth),
     };
 
-    // Recalculate 3 employee targets based on their percentages
+    // Recalculate employee targets based on their percentages
     const staffAllocations = allocations.map((staff) => {
       const targetAmount = Math.round(computedEditRevenue * (staff.percentage / 100));
       return {
@@ -121,16 +145,16 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
   };
 
   // Branch Total Actuals Calculations (ريفينيو ومبيعات الفرع)
-  const branchRevenueActual = octoberRecords.reduce((sum, r) => sum + r.actual, 0) || 1508000;
-  const branchActualBeforeVat = octoberRecords.reduce(
+  const branchRevenueActual = records.reduce((sum, r) => sum + r.actual, 0);
+  const branchActualBeforeVat = records.reduce(
     (sum, r) => sum + (r.actualBeforeVat !== undefined ? r.actualBeforeVat : Math.round(r.actual / 1.14)),
     0
   );
-  const branchVatAmount = octoberRecords.reduce(
+  const branchVatAmount = records.reduce(
     (sum, r) => sum + (r.vatAmount !== undefined ? r.vatAmount : r.actual - Math.round(r.actual / 1.14)),
     0
   );
-  const branchActualAfterVat = octoberRecords.reduce(
+  const branchActualAfterVat = records.reduce(
     (sum, r) => sum + (r.actualAfterVat !== undefined ? r.actualAfterVat : r.actual),
     0
   );
@@ -139,7 +163,7 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
   const branchInstallmentActual =
     targetStructure.installmentActual !== undefined
       ? targetStructure.installmentActual
-      : octoberRecords.reduce((sum, r) => sum + (r.installmentActual || 0), 0) || 380000;
+      : records.reduce((sum, r) => sum + (r.installmentActual || 0), 0);
 
   // Total Grand Actual = Revenue Actual + Installment Actual
   const branchGrandTotalActual = branchRevenueActual + branchInstallmentActual;
@@ -153,11 +177,11 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
     targetStructure.grandTotal > 0 ? (branchGrandTotalActual / targetStructure.grandTotal) * 100 : 0;
 
   // Category actuals for the branch
-  const branchMobilesActual = octoberRecords.reduce((sum, r) => sum + (r.mobilesActual || Math.round(r.actual * 0.65)), 0);
-  const branchAccessoriesActual = octoberRecords.reduce((sum, r) => sum + (r.accessoriesActual || Math.round(r.actual * 0.18)), 0);
-  const branchOtherActual = octoberRecords.reduce((sum, r) => sum + (r.otherActual || Math.round(r.actual * 0.17)), 0);
+  const branchMobilesActual = records.reduce((sum, r) => sum + (r.mobilesActual || 0), 0);
+  const branchAccessoriesActual = records.reduce((sum, r) => sum + (r.accessoriesActual || 0), 0);
+  const branchOtherActual = records.reduce((sum, r) => sum + (r.otherActual || 0), 0);
 
-  const branchTotalIncentives = octoberRecords.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0);
+  const branchTotalIncentives = records.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0);
 
   return (
     <section className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden transition-all">
@@ -172,7 +196,7 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-blue-400" />
-                <span>{isAr ? 'لوحة تارجت ومحقق الفرع لشهر 10 (أكتوبر 2026)' : 'Month 10 Target & Actuals Center'}</span>
+                <span>{isAr ? `لوحة تارجت ومحقق الفرع (${currentPeriod})` : `Branch Target & Actuals (${currentPeriod})`}</span>
               </span>
 
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs px-2.5 py-0.5 rounded-full font-bold font-mono flex items-center gap-1.5">
@@ -733,9 +757,9 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
             </div>
 
             <div className="text-xs text-slate-600 flex items-center gap-2 font-mono">
-              <span className="text-slate-400">فترة المبيعات:</span>
+              <span className="text-slate-400">{isAr ? 'فترة المبيعات:' : 'Period:'}</span>
               <span className="font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                شهر 10 (31 يوماً)
+                {currentPeriod} ({daysInMonth} {isAr ? 'يوماً' : 'days'})
               </span>
             </div>
           </div>
@@ -743,13 +767,13 @@ export const BranchTargetAndActualsManager: React.FC<BranchTargetAndActualsManag
           {/* 3 Detailed Employee Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {allocations.map((staff, idx) => {
-              // Find matching employee record in october
-              const rec = octoberRecords.find(
-                (r) => (r.employeeId && r.employeeId === staff.employeeId) || r.employee.includes(staff.employeeName)
+              // Find matching employee record in current period
+              const rec = records.find(
+                (r: SalesRecord) => (r.employeeId && r.employeeId === staff.employeeId) || r.employee.includes(staff.employeeName)
               );
 
               const empTarget = staff.targetAmount;
-              const empActual = rec ? rec.actual : empTarget * 1.05;
+              const empActual = rec ? rec.actual : 0;
               const empActualBeforeVat = rec?.actualBeforeVat !== undefined ? rec.actualBeforeVat : Math.round(empActual / 1.14);
               const empVatAmount = rec?.vatAmount !== undefined ? rec.vatAmount : empActual - empActualBeforeVat;
               const empActualAfterVat = rec?.actualAfterVat !== undefined ? rec.actualAfterVat : empActual;

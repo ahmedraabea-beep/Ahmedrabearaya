@@ -54,7 +54,7 @@ export const UnifiedAiPromptModal: React.FC<UnifiedAiPromptModalProps> = ({
   currency,
   language,
   currentBranchName = 'فرع راية كونكورد بلازا',
-  currentPeriod = 'أكتوبر 2026',
+  currentPeriod = '',
 }) => {
   const isAr = language === 'ar';
 
@@ -307,7 +307,7 @@ export const UnifiedAiPromptModal: React.FC<UnifiedAiPromptModalProps> = ({
                       type="text"
                       value={periodInput}
                       onChange={(e) => setPeriodInput(e.target.value)}
-                      placeholder="أكتوبر 2026"
+                      placeholder={isAr ? 'الفترة (مثال: أكتوبر 2026)' : 'Period (e.g. October 2026)'}
                       className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                   </div>

@@ -43,8 +43,8 @@ import {
   InventoryColumnMapping,
   InventorySheetParseResult,
 } from '../types/inventory';
+import { useDataStore } from '../store/DataStore';
 import {
-  DEFAULT_CONCORDE_INVENTORY_ITEMS,
   executeInventoryOptimization,
   parseUploadedInventorySheet,
   parseDualStockAndSalesFiles,
@@ -102,12 +102,13 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
 }) => {
   const isAr = language === 'ar';
   const singleFileInputRef = useRef<HTMLInputElement>(null);
+  const { state, dispatch } = useDataStore();
   const dualStockInputRef = useRef<HTMLInputElement>(null);
   const dualSalesInputRef = useRef<HTMLInputElement>(null);
 
-  // Inventory state initialized with authentic Concorde Plaza items
+  // Inventory state initialized from store
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(
-    DEFAULT_CONCORDE_INVENTORY_ITEMS
+    state.inventoryItems || []
   );
 
   // Active section tab: 'transfers' | 'cross_selling' | 'overstock' | 'alternatives' | 'email_view' | 'sheet_guide'
@@ -383,7 +384,7 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
   };
 
   const handleResetToDemo = () => {
-    setInventoryItems(DEFAULT_CONCORDE_INVENTORY_ITEMS);
+    setInventoryItems(state.inventoryItems || []);
     setSearchFilter('');
     setUploadError(null);
     setLastParseResult(null);
@@ -391,8 +392,8 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
     setCurrentFileName('');
     setCopiedSuccessMessage(
       isAr
-        ? 'تمت استعادة شيت مخزون فرع راية كونكورد بلازا المعتمد.'
-        : 'Restored default Raya Concorde Plaza inventory.'
+        ? 'تمت إعادة ضبط قائمة المخزون.'
+        : 'Reset inventory list.'
     );
     setTimeout(() => setCopiedSuccessMessage(''), 3000);
   };

@@ -29,34 +29,26 @@ export const BranchPerformanceCurve: React.FC<BranchPerformanceCurveProps> = ({
   onSelectPeriod,
 }) => {
   const t = translations[language];
+  const isAr = language === 'ar';
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   // Group records by available periods
   const availablePeriods: string[] = useMemo(() => {
-    const list = Array.from(new Set(records.map((r) => r.period).filter(Boolean))) as string[];
-    // Prioritize October (شهر 10)
-    return list.sort((a, b) => {
-      if (a.includes('أكتوبر') || a.includes('Oct')) return -1;
-      if (b.includes('أكتوبر') || b.includes('Oct')) return 1;
-      return b.localeCompare(a);
-    });
+    return Array.from(new Set(records.map((r) => r.period).filter(Boolean))) as string[];
   }, [records]);
 
-  // Current active period (defaults to October if available)
-  const currentPeriod = activePeriod || availablePeriods.find((p: string) => p.includes('أكتوبر') || p.includes('Oct')) || availablePeriods[0] || 'أكتوبر 2026';
-
-  // Determine days in current period (October is strictly 31 days as requested)
-  const isOctober = currentPeriod.includes('أكتوبر') || currentPeriod.includes('Oct') || currentPeriod.includes('10');
-  const daysInMonth = isOctober ? 31 : 30;
+  // Current active period
+  const currentPeriod = activePeriod || availablePeriods[0] || (isAr ? 'الفترة الحالية' : 'Current Period');
+  const daysInMonth = 30;
 
   // Filter records for the active period
   const currentMonthRecords = records.filter(
-    (r) => r.period === currentPeriod || (!r.period && isOctober)
+    (r) => !activePeriod || r.period === currentPeriod || !r.period
   );
-  const targetTotal = currentMonthRecords.reduce((sum, r) => sum + r.target, 0) || 1400000;
-  const actualTotal = currentMonthRecords.reduce((sum, r) => sum + r.actual, 0) || 1508000;
+  const targetTotal = currentMonthRecords.reduce((sum, r) => sum + r.target, 0);
+  const actualTotal = currentMonthRecords.reduce((sum, r) => sum + r.actual, 0);
 
-  // 5 trajectory checkpoints calibrated for 31 days in October: (Day 1, Day 8, Day 16, Day 24, Day 31)
+  // 5 trajectory checkpoints calibrated for the month
   const checkpoints = [
     {
       label: language === 'ar' ? 'بداية الشهر (يوم 1)' : 'Month Start (Day 1)',
@@ -65,22 +57,22 @@ export const BranchPerformanceCurve: React.FC<BranchPerformanceCurveProps> = ({
       day: 1,
     },
     {
-      label: language === 'ar' ? `الأسبوع الأول (يوم ${isOctober ? 8 : 7})` : `Week 1 (Day ${isOctober ? 8 : 7})`,
+      label: language === 'ar' ? 'الأسبوع الأول (يوم 7)' : 'Week 1 (Day 7)',
       targetRatio: 0.25,
       actualRatio: 0.28,
-      day: isOctober ? 8 : 7,
+      day: 7,
     },
     {
-      label: language === 'ar' ? `منتصف الشهر (يوم ${isOctober ? 16 : 15})` : `Mid Month (Day ${isOctober ? 16 : 15})`,
+      label: language === 'ar' ? 'منتصف الشهر (يوم 15)' : 'Mid Month (Day 15)',
       targetRatio: 0.50,
       actualRatio: 0.56,
-      day: isOctober ? 16 : 15,
+      day: 15,
     },
     {
-      label: language === 'ar' ? `الأسبوع الثالث (يوم ${isOctober ? 24 : 22})` : `Week 3 (Day ${isOctober ? 24 : 22})`,
+      label: language === 'ar' ? 'الأسبوع الثالث (يوم 22)' : 'Week 3 (Day 22)',
       targetRatio: 0.75,
       actualRatio: 0.82,
-      day: isOctober ? 24 : 22,
+      day: 22,
     },
     {
       label: language === 'ar' ? `إغلاق الشهر (يوم ${daysInMonth})` : `Month End (Day ${daysInMonth})`,
@@ -151,11 +143,9 @@ export const BranchPerformanceCurve: React.FC<BranchPerformanceCurveProps> = ({
             <h2 className="text-base font-bold text-slate-900">
               {t.curveTitle}
             </h2>
-            {isOctober && (
-              <span className="bg-blue-50 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-blue-200">
-                {language === 'ar' ? 'شهر 10 (31 يوماً)' : 'Month 10 (31 Days)'}
-              </span>
-            )}
+            <span className="bg-blue-50 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-blue-200">
+              {currentPeriod}
+            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             {t.curveSubtitle} · {language === 'ar' ? `الفترة النشطة: ${currentPeriod} (${daysInMonth} يوم)` : `Active: ${currentPeriod} (${daysInMonth} days)`}

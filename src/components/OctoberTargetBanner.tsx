@@ -18,6 +18,8 @@ import {
   Tv,
   CreditCard,
   Layers,
+  AlertCircle,
+  PlusCircle,
 } from 'lucide-react';
 import {
   Language,
@@ -27,13 +29,13 @@ import {
 } from '../types/sales';
 import { formatCurrencyNumber, formatPercent } from '../utils/calculations';
 import { translations } from '../utils/i18n';
-import { DEFAULT_OCTOBER_TARGET_STRUCTURE } from '../data/sampleData';
 
 interface OctoberTargetBannerProps {
   language: Language;
   currency: Currency;
   records: SalesRecord[];
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
+  selectedPeriod?: string;
   onOpenTargetAllocation: () => void;
   onOpenMonthlyReport: () => void;
 }
@@ -42,32 +44,73 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
   language,
   currency,
   records,
-  targetStructure = DEFAULT_OCTOBER_TARGET_STRUCTURE,
+  targetStructure,
+  selectedPeriod,
   onOpenTargetAllocation,
   onOpenMonthlyReport,
 }) => {
   const t = translations[language];
   const isAr = language === 'ar';
+  const activePeriod = targetStructure?.period || selectedPeriod || (isAr ? 'الفترة المحددة' : 'Selected Period');
 
-  // Filter October records (Month 10)
-  const octoberRecords = records.filter(
-    (r) => r.period && (r.period.includes('أكتوبر') || r.period.includes('Oct') || r.period.includes('10'))
-  );
+  // If no target structure is defined for this period
+  if (!targetStructure || (!targetStructure.grandTotal && !targetStructure.revenueTarget)) {
+    return (
+      <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-md border border-amber-500/30 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full font-bold">
+                  {activePeriod}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {isAr ? 'لا يوجد تارجت مسجل' : 'No target defined'}
+                </span>
+              </div>
+              <h3 className="text-lg font-black text-white mt-1">
+                {isAr ? 'لم يتم تحديد مستهدفات هذه الفترة بعد' : 'Target has not been set for this period'}
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {isAr
+                  ? 'قم بإدخال تارجت الريفينيو والتقسيط وتوزيع الحصص على مستشاري المبيعات لتفعيل التتبع الدقيق.'
+                  : 'Set revenue and installment targets and allocate shares among sales advisors.'}
+              </p>
+            </div>
+          </div>
 
-  const daysInMonth = targetStructure.daysInMonth || 31; // October has 31 days strictly as specified
-  const grandTotal = targetStructure.grandTotal;
-  const installmentTarget = targetStructure.installmentTarget;
-  const revenueTarget = targetStructure.revenueTarget;
-  const { mobiles, accessories, other } = targetStructure.revenueBreakdown;
+          <button
+            onClick={onOpenTargetAllocation}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md cursor-pointer shrink-0"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>{isAr ? 'حدد تارجت الشهر' : 'Set Period Target'}</span>
+          </button>
+        </div>
+      </section>
+    );
+  }
 
-  const totalActual = octoberRecords.reduce((sum, r) => sum + r.actual, 0) || 1508000;
-  const totalIncentives = octoberRecords.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0) || 45500;
-  const achievementRate = revenueTarget > 0 ? (totalActual / revenueTarget) * 100 : 107.7;
-  const dailyRevenuePace = Math.round(revenueTarget / daysInMonth);
-  const dailyGrandPace = Math.round(grandTotal / daysInMonth);
+  const daysInMonth = targetStructure.daysInMonth || 30;
+  const grandTotal = targetStructure.grandTotal || 0;
+  const installmentTarget = targetStructure.installmentTarget || 0;
+  const revenueTarget = targetStructure.revenueTarget || 0;
+  const mobiles = targetStructure.revenueBreakdown?.mobiles || 0;
+  const accessories = targetStructure.revenueBreakdown?.accessories || 0;
+  const other = targetStructure.revenueBreakdown?.other || 0;
+
+  // Actuals calculated from records without invented fallbacks
+  const totalActual = records.reduce((sum, r) => sum + r.actual, 0);
+  const totalIncentives = records.reduce((sum, r) => sum + (r.earnedIncentive || 0), 0);
+  const achievementRate = revenueTarget > 0 ? (totalActual / revenueTarget) * 100 : 0;
+  const dailyRevenuePace = daysInMonth > 0 ? Math.round(revenueTarget / daysInMonth) : 0;
+  const dailyGrandPace = daysInMonth > 0 ? Math.round(grandTotal / daysInMonth) : 0;
   const variance = totalActual - revenueTarget;
 
-  // The 3 official Raya advisors dividing only the Revenue target (Excluding installment target)
+  // The 3 official Raya advisors dividing only the Revenue target
   const advisors = [
     {
       id: '140729',
@@ -102,12 +145,12 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-blue-400" />
-                <span>{isAr ? 'تارجت شهر 10 (أكتوبر 2026)' : 'Month 10 (October 2026) Target'}</span>
+                <span>{isAr ? `تارجت ${activePeriod}` : `${activePeriod} Target`}</span>
               </span>
 
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs px-2.5 py-0.5 rounded-full font-bold font-mono flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{isAr ? `${daysInMonth} يوماً كاملاً` : `Full ${daysInMonth} Days`}</span>
+                <span>{isAr ? `${daysInMonth} يوماً` : `${daysInMonth} Days`}</span>
               </span>
 
               <span className="bg-purple-500/20 text-purple-300 border border-purple-400/30 text-xs px-2.5 py-0.5 rounded-full font-semibold">
@@ -118,8 +161,8 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
             <h3 className="text-lg md:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
               <span>
                 {isAr
-                  ? 'هيكل تارجت الفرع الكلي لشهر 10 (ريفينيو وتقسيط، وتقسيم المنتجات وتوزيعه على الـ 3 موظفين)'
-                  : 'October Target Breakdown (Revenue + Collective Installment, Categories & 3 Staff)'}
+                  ? `هيكل تارجت الفرع الكلي (${activePeriod}) - ريفينيو وتقسيط وتوزيع الحصص`
+                  : `Branch Target Structure (${activePeriod}) - Revenue, Installment & Quotas`}
               </span>
               <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
             </h3>
@@ -140,7 +183,7 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
               className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
               <FileText className="w-4 h-4 text-purple-300" />
-              <span>{isAr ? 'تقرير PDF لشهر 10' : 'October PDF Report'}</span>
+              <span>{isAr ? `تقرير ${activePeriod}` : `${activePeriod} Report`}</span>
             </button>
           </div>
         </div>
@@ -210,7 +253,7 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
           </div>
         </div>
 
-        {/* Revenue Sub-Division Pill Row: Mobiles, Accessories, Other (Screens & ACs) */}
+        {/* Revenue Sub-Division Pill Row: Mobiles, Accessories, Other */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-blue-400" />
@@ -252,15 +295,15 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
           </div>
         </div>
 
-        {/* 3 Reps Allocation Breakdown for Month 10: Divided on Revenue Target only (Excluding Installment) */}
+        {/* Reps Allocation Breakdown */}
         <div className="bg-slate-950/60 rounded-xl p-3.5 sm:p-4 border border-white/10 space-y-2.5">
           <div className="flex items-center justify-between text-xs text-slate-300 pb-2 border-b border-white/10">
             <span className="font-bold flex items-center gap-1.5 text-blue-300">
               <Users className="w-4 h-4 text-blue-400" />
               <span>
                 {isAr
-                  ? 'قسمة تارجت الريفينيو على الموظفين الثلاثة (دون تارجت التقسيط لأنه تارجت كلي للفرع):'
-                  : 'Revenue Split on 3 Staff (Excluding Collective Installment):'}
+                  ? 'قسمة تارجت الريفينيو على المستشارين (دون تارجت التقسيط لأنه تارجت كلي للفرع):'
+                  : 'Revenue Split on Staff (Excluding Collective Installment):'}
               </span>
             </span>
             <span className="text-[11px] text-emerald-300 font-mono font-bold">
@@ -270,20 +313,18 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {advisors.map((adv) => {
-              // Calculate advisor target from current revenueTarget
               const empTarget = Math.round(revenueTarget * (adv.pct / 100));
               const empMobiles = Math.round(mobiles * (adv.pct / 100));
               const empAccessories = Math.round(accessories * (adv.pct / 100));
               const empOther = Math.round(other * (adv.pct / 100));
-              const empDailyTarget = Math.round(empTarget / daysInMonth);
+              const empDailyTarget = daysInMonth > 0 ? Math.round(empTarget / daysInMonth) : 0;
 
-              // Find matching actual from records
-              const rec = octoberRecords.find(
+              const rec = records.find(
                 (r) => r.employeeId === adv.id || r.employee.includes(adv.name)
               );
-              const empActual = rec ? rec.actual : empTarget * 1.05;
+              const empActual = rec ? rec.actual : 0;
               const empRate = empTarget > 0 ? (empActual / empTarget) * 100 : 0;
-              const isAchieved = empActual >= empTarget;
+              const isAchieved = empTarget > 0 && empActual >= empTarget;
 
               return (
                 <div
@@ -325,14 +366,12 @@ export const OctoberTargetBanner: React.FC<OctoberTargetBannerProps> = ({
                     </div>
                   </div>
 
-                  {/* Micro sub-targets per advisor */}
                   <div className="pt-1 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-400 font-mono">
                     <span>{isAr ? 'موبايل:' : 'Mob:'} {formatCurrencyNumber(empMobiles, currency, true, language)}</span>
                     <span>{isAr ? 'إكسسوار:' : 'Acc:'} {formatCurrencyNumber(empAccessories, currency, true, language)}</span>
                     <span title={isAr ? 'شاشات وتكييفات' : 'Screens & AC'}>{isAr ? 'أخرى:' : 'Oth:'} {formatCurrencyNumber(empOther, currency, true, language)}</span>
                   </div>
 
-                  {/* Progress Bar */}
                   <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full transition-all duration-500 ${

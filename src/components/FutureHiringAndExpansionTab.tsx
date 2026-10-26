@@ -31,7 +31,7 @@ interface FutureHiringAndExpansionTabProps {
   records: SalesRecord[];
   currency: Currency;
   language: Language;
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   annualProjectedRevenue?: number;
   avgMonthlyGrowthRate?: number;
 }

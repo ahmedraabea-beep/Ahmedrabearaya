@@ -29,7 +29,7 @@ interface ConcordeAnnualProjectionSectionProps {
   records: SalesRecord[];
   currency: Currency;
   language: Language;
-  targetStructure?: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
 }
 
 export const ConcordeAnnualProjectionSection: React.FC<ConcordeAnnualProjectionSectionProps> = ({

@@ -109,29 +109,7 @@ export const SettingsPage: React.FC = () => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
         const storeData = parsed.store || parsed;
-
-        if (storeData.records && Array.isArray(storeData.records)) {
-          dispatch({ type: 'SET_RECORDS', payload: storeData.records });
-        }
-        if (storeData.targets) {
-          dispatch({ type: 'SET_TARGETS', payload: storeData.targets });
-        }
-        if (storeData.incentiveRules) {
-          dispatch({ type: 'SET_INCENTIVE_RULES', payload: storeData.incentiveRules });
-        }
-        if (storeData.settings) {
-          dispatch({ type: 'SET_SETTINGS', payload: storeData.settings });
-        }
-        if (storeData.shifts) {
-          dispatch({ type: 'SET_SHIFTS', payload: storeData.shifts });
-        }
-        if (storeData.inventoryItems) {
-          dispatch({ type: 'SET_INVENTORY_ITEMS', payload: storeData.inventoryItems });
-        }
-        if (storeData.retention) {
-          dispatch({ type: 'SET_RETENTION', payload: storeData.retention });
-        }
-
+        dispatch({ type: 'SET_FULL_STORE', payload: storeData });
         saveStoreNow();
         showStatus(isAr ? 'تم استيراد قاعدة البيانات بنجاح واستعادتها بالكامل!' : 'Database restored successfully!');
       } catch (err) {

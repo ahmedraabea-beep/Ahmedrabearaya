@@ -27,6 +27,7 @@ import {
   enrichSalesRecords,
 } from '../data/sampleData';
 import { SEED_STORE_DATA, SEED_VERSION } from '../seedData';
+import { normalizeStore } from '../utils/normalizeStore';
 
 export interface StoreSettings {
   language: Language;
@@ -128,25 +129,25 @@ function storeReducer(state: AppStoreState, action: StoreAction): AppStoreState 
   const now = new Date().toISOString();
 
   switch (action.type) {
-    case 'SET_FULL_STORE':
+    case 'SET_FULL_STORE': {
+      const normalized = normalizeStore(action.payload);
       return {
         ...state,
-        ...action.payload,
-        // Ensure critical structures exist
+        ...normalized,
+        records: normalized.records,
         targets: {
           ...state.targets,
-          ...(action.payload.targets || {}),
+          ...normalized.targets,
         },
+        targetAllocation: normalized.targetAllocation,
         settings: {
           ...state.settings,
-          ...(action.payload.settings || {}),
+          ...normalized.settings,
         },
-        notificationSettings:
-          action.payload.notificationSettings && typeof action.payload.notificationSettings === 'object'
-            ? { ...DEFAULT_NOTIFICATION_SETTINGS, ...action.payload.notificationSettings }
-            : state.notificationSettings || DEFAULT_NOTIFICATION_SETTINGS,
-        lastUpdated: action.payload.lastUpdated || now,
+        notificationSettings: normalized.notificationSettings,
+        lastUpdated: normalized.lastUpdated || now,
       };
+    }
 
     case 'SET_PERIOD':
       return {
@@ -364,10 +365,7 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (hasServerRecords) {
               dispatch({
                 type: 'SET_FULL_STORE',
-                payload: {
-                  ...serverData,
-                  records: enrichSalesRecords(serverData.records),
-                },
+                payload: normalizeStore(serverData),
               });
               isInitialLoad.current = false;
               return;
@@ -388,10 +386,7 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (isMounted) {
               dispatch({
                 type: 'SET_FULL_STORE',
-                payload: {
-                  ...SEED_STORE_DATA,
-                  records: enrichSalesRecords(SEED_STORE_DATA.records),
-                },
+                payload: normalizeStore(SEED_STORE_DATA),
               });
               isInitialLoad.current = false;
               return;
@@ -404,10 +399,7 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
             if (parsed.records && parsed.records.length > 0) {
               dispatch({
                 type: 'SET_FULL_STORE',
-                payload: {
-                  ...parsed,
-                  records: enrichSalesRecords(parsed.records),
-                },
+                payload: normalizeStore(parsed),
               });
               isInitialLoad.current = false;
               return;
@@ -548,10 +540,7 @@ export const DataStoreProvider: React.FC<{ children: ReactNode }> = ({ children 
         if (serverData && typeof serverData === 'object' && Array.isArray(serverData.records)) {
           dispatch({
             type: 'SET_FULL_STORE',
-            payload: {
-              ...serverData,
-              records: enrichSalesRecords(serverData.records),
-            },
+            payload: normalizeStore(serverData),
           });
         }
       }

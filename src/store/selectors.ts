@@ -9,11 +9,9 @@ import {
   calculateBranchPerformances,
   calculateOverallStats,
 } from '../utils/calculations';
-import { DEFAULT_OCTOBER_TARGET_STRUCTURE } from '../data/sampleData';
-
 // 1. Filter Records by Period and Branch
 export function selectRecordsInActivePeriod(state: AppStoreState): SalesRecord[] {
-  const period = state.selectedPeriod.trim();
+  const period = (state.selectedPeriod || '').trim();
   if (!period) return state.records;
   return state.records.filter((r) => !r.period || r.period.trim() === period);
 }
@@ -45,24 +43,10 @@ export function selectFilteredRecords(state: AppStoreState): SalesRecord[] {
 }
 
 // 2. Target Structure for Active Period
-export function selectActiveTargetStructure(state: AppStoreState): BranchTotalTargetStructure {
+export function selectActiveTargetStructure(state: AppStoreState): BranchTotalTargetStructure | null {
   const period = (state.selectedPeriod || '').trim();
-  const raw = (state.targets && state.targets[period]) || (state.targets && state.targets['أكتوبر 2026']) || DEFAULT_OCTOBER_TARGET_STRUCTURE;
-
-  return {
-    grandTotal: raw?.grandTotal || DEFAULT_OCTOBER_TARGET_STRUCTURE.grandTotal,
-    installmentTarget: raw?.installmentTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.installmentTarget,
-    revenueTarget: raw?.revenueTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueTarget,
-    revenueBreakdown: {
-      mobiles: raw?.revenueBreakdown?.mobiles || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.mobiles,
-      accessories: raw?.revenueBreakdown?.accessories || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.accessories,
-      other: raw?.revenueBreakdown?.other || DEFAULT_OCTOBER_TARGET_STRUCTURE.revenueBreakdown.other,
-    },
-    period: raw?.period || period || 'أكتوبر 2026',
-    daysInMonth: raw?.daysInMonth || DEFAULT_OCTOBER_TARGET_STRUCTURE.daysInMonth,
-    dailyRevenueTarget: raw?.dailyRevenueTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.dailyRevenueTarget,
-    dailyGrandTotalTarget: raw?.dailyGrandTotalTarget || DEFAULT_OCTOBER_TARGET_STRUCTURE.dailyGrandTotalTarget,
-  };
+  if (!period || !state.targets) return null;
+  return state.targets[period] || null;
 }
 
 // 3. Financial Totals (Single Source of Truth)
@@ -139,27 +123,25 @@ export function selectRevenuePaceMetrics(state: AppStoreState): RevenuePaceMetri
   const totals = selectFinancialTotals(state);
   const targetStructure = selectActiveTargetStructure(state);
 
-  const grandTarget = targetStructure.grandTotal || targetStructure.revenueTarget || 1;
-  const revenueTarget = targetStructure.revenueTarget || grandTarget;
-  const installmentTarget = targetStructure.installmentTarget || 0;
+  const grandTarget = targetStructure?.grandTotal || targetStructure?.revenueTarget || 0;
+  const revenueTarget = targetStructure?.revenueTarget || grandTarget;
+  const installmentTarget = targetStructure?.installmentTarget || 0;
 
   const effectiveTotalActual = totals.effectiveTotalActual;
   const grandAchievementRate = grandTarget > 0 ? (effectiveTotalActual / grandTarget) * 100 : 0;
   const remainingToTarget = Math.max(0, grandTarget - effectiveTotalActual);
 
-  const daysInMonth = targetStructure.daysInMonth || 31;
-  // Current calendar day (or default 25 if today is beyond month)
+  const daysInMonth = targetStructure?.daysInMonth || 30;
   const today = new Date();
   const currentDay = Math.min(daysInMonth, Math.max(1, today.getDate()));
-  const daysLeft = Math.max(1, daysInMonth - currentDay);
+  const daysLeft = Math.max(0, daysInMonth - currentDay);
 
   const dailyActualRate = currentDay > 0 ? effectiveTotalActual / currentDay : 0;
   const dailyRequiredRate = daysLeft > 0 ? remainingToTarget / daysLeft : 0;
 
-  // Linear trend projection to month-end: current actual + (daily pace * days left)
   const forecastMonthEnd = Math.round(dailyActualRate * daysInMonth);
-  const isForecastAboveTarget = forecastMonthEnd >= grandTarget;
-  const forecastVariance = Math.round(forecastMonthEnd - grandTarget);
+  const isForecastAboveTarget = grandTarget > 0 ? forecastMonthEnd >= grandTarget : false;
+  const forecastVariance = grandTarget > 0 ? Math.round(forecastMonthEnd - grandTarget) : 0;
 
   return {
     effectiveTotalActual,
@@ -202,18 +184,18 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
 
   for (const r of records) {
     totalRevActual += r.actual;
-    mobActual += r.mobilesActual || Math.round(r.actual * 0.65);
-    accActual += r.accessoriesActual || Math.round(r.actual * 0.15);
-    otherActual += r.otherActual || Math.round(r.actual * 0.20);
-    instActual += r.installmentActual || Math.round(r.actual * 0.30);
+    mobActual += r.mobilesActual || 0;
+    accActual += r.accessoriesActual || 0;
+    otherActual += r.otherActual || 0;
+    instActual += r.installmentActual || 0;
   }
 
-  const mobTarget = targetStructure.revenueBreakdown?.mobiles || Math.round(targetStructure.revenueTarget * 0.65);
-  const accTarget = targetStructure.revenueBreakdown?.accessories || Math.round(targetStructure.revenueTarget * 0.15);
-  const otherTarget = targetStructure.revenueBreakdown?.other || Math.round(targetStructure.revenueTarget * 0.20);
-  const instTarget = targetStructure.installmentTarget || 500000;
-  const revTarget = targetStructure.revenueTarget || 1400000;
-  const grandTarget = targetStructure.grandTotal || (revTarget + instTarget);
+  const mobTarget = targetStructure?.revenueBreakdown?.mobiles || 0;
+  const accTarget = targetStructure?.revenueBreakdown?.accessories || 0;
+  const otherTarget = targetStructure?.revenueBreakdown?.other || 0;
+  const instTarget = targetStructure?.installmentTarget || 0;
+  const revTarget = targetStructure?.revenueTarget || (mobTarget + accTarget + otherTarget);
+  const grandTarget = targetStructure?.grandTotal || (revTarget + instTarget);
   const grandActual = totalRevActual + instActual;
 
   const calcRate = (act: number, tgt: number) => (tgt > 0 ? (act / tgt) * 100 : 0);
@@ -226,7 +208,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: totalRevActual,
       target: revTarget,
       rate: calcRate(totalRevActual, revTarget),
-      isAchieved: totalRevActual >= revTarget,
+      isAchieved: revTarget > 0 && totalRevActual >= revTarget,
     },
     {
       key: 'mobiles',
@@ -235,7 +217,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: mobActual,
       target: mobTarget,
       rate: calcRate(mobActual, mobTarget),
-      isAchieved: mobActual >= mobTarget,
+      isAchieved: mobTarget > 0 && mobActual >= mobTarget,
     },
     {
       key: 'accessories',
@@ -244,7 +226,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: accActual,
       target: accTarget,
       rate: calcRate(accActual, accTarget),
-      isAchieved: accActual >= accTarget,
+      isAchieved: accTarget > 0 && accActual >= accTarget,
     },
     {
       key: 'other',
@@ -253,7 +235,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: otherActual,
       target: otherTarget,
       rate: calcRate(otherActual, otherTarget),
-      isAchieved: otherActual >= otherTarget,
+      isAchieved: otherTarget > 0 && otherActual >= otherTarget,
     },
     {
       key: 'installment',
@@ -262,7 +244,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: instActual,
       target: instTarget,
       rate: calcRate(instActual, instTarget),
-      isAchieved: instActual >= instTarget,
+      isAchieved: instTarget > 0 && instActual >= instTarget,
     },
     {
       key: 'grandTotal',
@@ -271,7 +253,7 @@ export function selectCategoryTargetsMatrix(state: AppStoreState): CategoryProgr
       actual: grandActual,
       target: grandTarget,
       rate: calcRate(grandActual, grandTarget),
-      isAchieved: grandActual >= grandTarget,
+      isAchieved: grandTarget > 0 && grandActual >= grandTarget,
     },
   ];
 }
@@ -297,14 +279,18 @@ export function selectTopEmployees(state: AppStoreState, count = 3): SalesRecord
 // 8. Unique Period & Branch Lists
 export function selectUniquePeriods(state: AppStoreState): string[] {
   const set = new Set<string>();
-  // Include standard known periods
-  set.add('أكتوبر 2026');
-  set.add('سبتمبر 2026');
-  set.add('أغسطس 2026');
+  if (state.targets) {
+    for (const p of Object.keys(state.targets)) {
+      if (p && p.trim()) set.add(p.trim());
+    }
+  }
   for (const r of state.records) {
     if (r.period && r.period.trim()) {
       set.add(r.period.trim());
     }
+  }
+  if (state.selectedPeriod && state.selectedPeriod.trim()) {
+    set.add(state.selectedPeriod.trim());
   }
   return Array.from(set);
 }

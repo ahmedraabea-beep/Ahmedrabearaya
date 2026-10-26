@@ -50,7 +50,7 @@ import { calculateStaffAttritionMetrics } from '../utils/attritionService';
 
 interface AllAchievementsDashboardProps {
   records: SalesRecord[];
-  targetStructure: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   currency: Currency;
   language: Language;
   vatDisplayMode?: 'afterVat' | 'beforeVat';
@@ -62,7 +62,7 @@ interface AllAchievementsDashboardProps {
 
 export const AllAchievementsDashboard: React.FC<AllAchievementsDashboardProps> = ({
   records,
-  targetStructure,
+  targetStructure: propTargetStructure,
   currency,
   language,
   vatDisplayMode = 'afterVat',
@@ -72,6 +72,16 @@ export const AllAchievementsDashboard: React.FC<AllAchievementsDashboardProps> =
   onOpenIncentives,
 }) => {
   const isAr = language === 'ar';
+  const targetStructure: BranchTotalTargetStructure = propTargetStructure || {
+    grandTotal: 0,
+    installmentTarget: 0,
+    revenueTarget: 0,
+    revenueBreakdown: { mobiles: 0, accessories: 0, other: 0 },
+    period: records[0]?.period || '',
+    daysInMonth: 30,
+    dailyRevenueTarget: 0,
+    dailyGrandTotalTarget: 0,
+  };
 
   // Filters & State
   const [timeframe, setTimeframe] = useState<'current_month' | 'quarter_q4' | 'all_time'>('current_month');
@@ -269,7 +279,7 @@ export const AllAchievementsDashboard: React.FC<AllAchievementsDashboardProps> =
   const handleCopySummary = () => {
     const isGross = vatDisplayMode === 'afterVat';
     const text = `🏆 *تقرير ما تم تحقيقه - فرع راية كونكورد بلازا* 🏆
-📅 الفترة: ${timeframe === 'current_month' ? 'أكتوبر 2026' : timeframe === 'quarter_q4' ? 'الربع الرابع Q4' : 'إجمالي كافة الفترات'}
+📅 الفترة: ${timeframe === 'current_month' ? (records[0]?.period || 'الشهر الحالي') : timeframe === 'quarter_q4' ? 'الربع الرابع Q4' : 'إجمالي كافة الفترات'}
 ------------------------------------
 🎯 تارجت الريفينيو المطلوب: ${formatCurrencyNumber(achievements.baseRevenueTarget)} ج.م
 💰 إجمالي ما تم تحقيقه (${isGross ? 'شامل الضريبة 14%' : 'صافي قبل الضريبة'}): ${formatCurrencyNumber(achievements.activeActualRevenue)} ج.م

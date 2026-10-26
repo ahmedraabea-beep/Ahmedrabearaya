@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDataStore } from '../store/DataStore';
-import { selectFilteredRecords, selectFinancialTotals } from '../store/selectors';
+import { selectFilteredRecords, selectFinancialTotals, selectActiveTargetStructure } from '../store/selectors';
 import { ExecutivePresentationCard } from '../components/ExecutivePresentationCard';
 import { MonthlyReportModal } from '../components/MonthlyReportModal';
 import { ExportAndDownloadCenterModal } from '../components/ExportAndDownloadCenterModal';
@@ -34,7 +34,7 @@ export const ReportsPage: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const activeRecords = selectFilteredRecords(state);
-  const currentPeriodTarget = state.targets[state.selectedPeriod] || state.targets['2026-10'] || Object.values(state.targets)[0];
+  const currentPeriodTarget = selectActiveTargetStructure(state);
 
   const handleExportExcel = () => {
     exportRecordsToExcel(

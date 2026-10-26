@@ -219,7 +219,7 @@ export const AndroidMobileShell: React.FC<AndroidMobileShellProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                {isAr ? 'أكتوبر 2026' : 'October 2026'} ·{' '}
+                {targetStructure?.period || records[0]?.period || (isAr ? 'الفترة الحالية' : 'Current Period')} ·{' '}
                 <span className="font-mono text-emerald-300 font-semibold">
                   {grandAchievementRate.toFixed(1)}%
                 </span>
@@ -267,7 +267,7 @@ export const AndroidMobileShell: React.FC<AndroidMobileShellProps> = ({
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                   <Target className="w-4 h-4" />
-                  <span>{isAr ? 'مستهدف فرع كونكورد (أكتوبر 2026)' : 'Concorde Target (Oct 2026)'}</span>
+                  <span>{isAr ? `مستهدف فرع كونكورد (${targetStructure?.period || records[0]?.period || 'الفترة الحالية'})` : `Concorde Target (${targetStructure?.period || records[0]?.period || 'Current'})`}</span>
                 </span>
                 <span className="text-xs font-mono text-slate-300 bg-white/10 px-2 py-0.5 rounded-full">
                   {isAfterVat ? (isAr ? 'شامل الضريبة 14%' : 'Gross with VAT') : (isAr ? 'صافي قبل الضريبة' : 'Net Pre-VAT')}
@@ -707,7 +707,7 @@ export const AndroidMobileShell: React.FC<AndroidMobileShellProps> = ({
                     <span>{isAr ? 'الحافز المستحق المعتمد' : 'Verified Earned Incentive'}</span>
                   </span>
                   <span className="text-[11px] font-mono text-emerald-300 bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700">
-                    {calcRecord.period || 'أكتوبر 2026'}
+                    {calcRecord.period || targetStructure?.period || (isAr ? 'الفترة الحالية' : 'Current Period')}
                   </span>
                 </div>
 
@@ -715,7 +715,7 @@ export const AndroidMobileShell: React.FC<AndroidMobileShellProps> = ({
                   <div className="text-3xl font-black font-mono tracking-tight text-white">
                     {formatCurrencyNumber(
                       calcRecord.earnedIncentive ||
-                        (calcRecord.incentiveItems?.reduce((s, it) => s + it.totalEarned, 0) || Math.round(calcRecord.actual * 0.02)),
+                        (calcRecord.incentiveItems?.reduce((s, it) => s + it.totalEarned, 0) || 0),
                       currency,
                       true,
                       language

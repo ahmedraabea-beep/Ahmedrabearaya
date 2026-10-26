@@ -25,7 +25,7 @@ import { formatCurrencyNumber, formatPercent } from '../utils/calculations';
 interface BranchTargetBreakdownCardProps {
   language: Language;
   currency: Currency;
-  targetStructure: BranchTotalTargetStructure;
+  targetStructure?: BranchTotalTargetStructure | null;
   allocations: EmployeeTargetAllocation[];
   onOpenTargetModal: () => void;
 }
@@ -38,6 +38,34 @@ export const BranchTargetBreakdownCard: React.FC<BranchTargetBreakdownCardProps>
   onOpenTargetModal,
 }) => {
   const isAr = language === 'ar';
+
+  if (!targetStructure || (!targetStructure.grandTotal && !targetStructure.revenueTarget)) {
+    return (
+      <div className="bg-white rounded-2xl border border-amber-300 p-8 text-center space-y-4 shadow-xs">
+        <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+          <Target className="w-7 h-7" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-lg font-black text-slate-900">
+            {isAr ? 'لم يتم تحديد مستهدف لهذا الشهر بعد' : 'No target defined for this month'}
+          </h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            {isAr
+              ? 'يجب تحديد هيكل تارجت الفرع (الريفينيو والتقسيط وتوزيع المنتجات) للبدء في توزيع الحصص.'
+              : 'Please set the branch target structure to allocate staff quotas.'}
+          </p>
+        </div>
+        <button
+          onClick={onOpenTargetModal}
+          className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+        >
+          <Target className="w-4 h-4" />
+          <span>{isAr ? 'حدد تارجت الشهر' : 'Set Month Target'}</span>
+        </button>
+      </div>
+    );
+  }
+
   const allocations = Array.isArray(propAllocations) && propAllocations.length > 0 ? propAllocations : [
     { employeeId: '140729', employeeName: 'أحمد ربيع سيد', percentage: 40, targetAmount: 560000 },
     { employeeId: '41308', employeeName: 'عمرو عبد الحليم', percentage: 35, targetAmount: 490000 },
@@ -67,7 +95,7 @@ export const BranchTargetBreakdownCard: React.FC<BranchTargetBreakdownCardProps>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold tracking-tight text-white">
-                {isAr ? 'هيكل تارجت الفرع الكلي لشهر 10 (أكتوبر)' : 'Total Branch Target Structure - Month 10'}
+                {isAr ? `هيكل تارجت الفرع الكلي (${period || 'الفترة المحددة'})` : `Total Branch Target Structure (${period || 'Selected Period'})`}
               </h2>
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] px-2.5 py-0.5 rounded-full font-mono font-bold">
                 {daysInMonth} {isAr ? 'يوماً' : 'days'}

@@ -150,7 +150,7 @@ export const LiveClockAndSync: React.FC<LiveClockAndSyncProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white text-[11px]">
-                  {isAr ? 'دورة إقفال أكتوبر 2026' : 'October 2026 Fiscal Cycle'}
+                  {isAr ? execTime.fiscalPeriodNameAr : execTime.fiscalPeriodNameEn}
                 </span>
                 <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950 px-1.5 py-0.2 rounded border border-emerald-500/30 font-mono">
                   {execTime.monthProgressPercent}%

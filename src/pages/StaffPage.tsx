@@ -12,7 +12,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useDataStore } from '../store/DataStore';
-import { selectRecordsInActivePeriod } from '../store/selectors';
+import { selectRecordsInActivePeriod, selectActiveTargetStructure } from '../store/selectors';
 import { Leaderboard } from '../components/Leaderboard';
 import { BranchTeamHeader } from '../components/BranchTeamHeader';
 import { EmployeeDeepAnalytics } from '../components/EmployeeDeepAnalytics';
@@ -37,7 +37,7 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
   const isAr = state.settings.language === 'ar';
   const currency = state.settings.currency;
   const activeRecords = selectRecordsInActivePeriod(state);
-  const targetStructure = state.targets[state.selectedPeriod] || state.targets['2026-10'] || Object.values(state.targets)[0];
+  const targetStructure = selectActiveTargetStructure(state);
 
   return (
     <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
