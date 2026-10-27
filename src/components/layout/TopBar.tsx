@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Search,
   Bell,
@@ -6,16 +6,14 @@ import {
   Building2,
   ChevronRight,
   Languages,
-  DollarSign,
-  Laptop,
   Smartphone,
-  Sparkles,
-  Zap,
+  MoreHorizontal,
+  Check,
 } from 'lucide-react';
 import { AppRoute } from './useHashRouter';
 import { useDataStore } from '../../store/DataStore';
 import { selectUniquePeriods, selectUniqueBranches } from '../../store/selectors';
-import { Currency, Language } from '../../types/sales';
+import { Currency } from '../../types/sales';
 
 interface TopBarProps {
   currentRoute: AppRoute;
@@ -49,6 +47,19 @@ export const TopBar: React.FC<TopBarProps> = ({
   const periods = selectUniquePeriods(state);
   const branches = selectUniqueBranches(state);
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const routeName = ROUTE_NAMES[currentRoute] || { ar: 'الرئيسية', en: 'Dashboard' };
 
   const handleToggleVat = () => {
@@ -78,7 +89,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs select-none">
       <div className="px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2">
         {/* Left: Breadcrumbs & Page Title */}
         <div className="flex items-center gap-2 truncate">
@@ -93,36 +104,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         {/* Right: Controls & Selectors */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Global Search Trigger (Ctrl+K) */}
-          <button
-            type="button"
-            onClick={onOpenCommandPalette}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors cursor-pointer border border-slate-200"
-            title={isAr ? 'بحث شامل (Ctrl+K)' : 'Search (Ctrl+K)'}
-          >
-            <Search className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden lg:inline">{isAr ? 'بحث سريع...' : 'Quick search...'}</span>
-            <kbd className="hidden sm:inline-block px-1 rounded bg-white text-[10px] font-mono border border-slate-200 text-slate-400">
-              ⌘K
-            </kbd>
-          </button>
-
-          {/* Period Selector */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-xl px-2 py-1 border border-slate-200">
-            <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <select
-              value={state.selectedPeriod}
-              onChange={(e) => dispatch({ type: 'SET_PERIOD', payload: e.target.value })}
-              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              {periods.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Branch Selector (if multiple exist) */}
           {branches.length > 1 && (
             <div className="hidden xl:flex items-center gap-1 bg-slate-100 rounded-xl px-2 py-1 border border-slate-200">
@@ -142,55 +123,41 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
 
-          {/* VAT Mode Toggle */}
-          <button
-            type="button"
-            onClick={handleToggleVat}
-            className="px-2 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-700"
-            title={isAr ? 'تبديل وضع الضريبة (شامل 14% أو صافي)' : 'Toggle VAT Mode'}
-          >
-            {state.settings.vatDisplayMode === 'afterVat'
-              ? isAr
-                ? 'شامل 14%'
-                : 'Gross'
-              : isAr
-              ? 'صافي'
-              : 'Net'}
-          </button>
-
-          {/* Currency Switcher */}
-          <div className="hidden sm:flex items-center bg-slate-100 rounded-xl p-0.5 border border-slate-200 text-xs font-bold">
-            {currencies.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => handleCurrencyChange(c)}
-                className={`px-1.5 py-0.5 rounded-lg transition-colors cursor-pointer ${
-                  state.settings.currency === c
-                    ? 'bg-white text-emerald-800 shadow-2xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                {c === 'EGP' ? (isAr ? 'ج.م' : 'EGP') : c}
-              </button>
-            ))}
+          {/* Period Selector */}
+          <div className="flex items-center gap-1 bg-slate-100 rounded-xl px-2.5 py-1.5 border border-slate-200">
+            <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <select
+              value={state.selectedPeriod}
+              onChange={(e) => dispatch({ type: 'SET_PERIOD', payload: e.target.value })}
+              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              {periods.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Language Toggle */}
+          {/* Global Search Trigger (Ctrl+K) */}
           <button
             type="button"
-            onClick={handleToggleLanguage}
-            className="p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors cursor-pointer"
-            title={isAr ? 'Switch to English' : 'التحويل للعربية'}
+            onClick={onOpenCommandPalette}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition-colors cursor-pointer border border-slate-200"
+            title={isAr ? 'بحث شامل (Ctrl+K)' : 'Search (Ctrl+K)'}
           >
-            <Languages className="w-3.5 h-3.5" />
+            <Search className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden md:inline">{isAr ? 'بحث...' : 'Search...'}</span>
+            <kbd className="hidden sm:inline-block px-1 rounded bg-white text-[10px] font-mono border border-slate-200 text-slate-400">
+              ⌘K
+            </kbd>
           </button>
 
           {/* Milestone Alerts Bell */}
           <button
             type="button"
             onClick={onOpenNotificationCenter}
-            className={`relative p-1.5 rounded-xl border transition-colors cursor-pointer ${
+            className={`relative p-2 rounded-xl border transition-colors cursor-pointer ${
               activeAlertsCount > 0
                 ? 'bg-amber-50 border-amber-300 text-amber-700'
                 : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
@@ -205,15 +172,104 @@ export const TopBar: React.FC<TopBarProps> = ({
             )}
           </button>
 
-          {/* Mobile QR & PWA Modal Trigger */}
-          <button
-            type="button"
-            onClick={onOpenMobileModal}
-            className="p-1.5 text-slate-600 hover:text-emerald-700 bg-slate-100 hover:bg-emerald-50 rounded-xl border border-slate-200 transition-colors cursor-pointer"
-            title={isAr ? 'تثبيت وفتح على الهاتف' : 'Install on Mobile'}
-          >
-            <Smartphone className="w-4 h-4 text-emerald-600" />
-          </button>
+          {/* "⋯" More Options Dropdown (Language, Tax, Install) */}
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl border border-slate-200 transition-colors cursor-pointer"
+              title={isAr ? 'خيارات إضافية' : 'More Options'}
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+
+            {isMenuOpen && (
+              <div
+                className={`absolute top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 animate-in fade-in duration-100 ${
+                  isAr ? 'left-0' : 'right-0'
+                }`}
+              >
+                {/* Language Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleToggleLanguage();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Languages className="w-4 h-4 text-blue-600" />
+                    <span>{isAr ? 'اللغة: English' : 'Language: العربية'}</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {state.settings.language.toUpperCase()}
+                  </span>
+                </button>
+
+                {/* VAT Mode Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleToggleVat();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded bg-blue-100 text-blue-700 font-mono text-[10px] flex items-center justify-center font-bold">
+                      %
+                    </span>
+                    <span>{isAr ? 'عرض الضريبة (14% VAT)' : 'Tax Mode'}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-600">
+                    {state.settings.vatDisplayMode === 'afterVat'
+                      ? isAr ? 'شامل' : 'Gross'
+                      : isAr ? 'صافي' : 'Net'}
+                  </span>
+                </button>
+
+                {/* Currency Switcher */}
+                <div className="px-3 py-2 border-t border-slate-100 my-1">
+                  <span className="text-[10px] font-semibold text-slate-400 block mb-1.5">
+                    {isAr ? 'العملة' : 'Currency'}
+                  </span>
+                  <div className="grid grid-cols-4 gap-1 text-xs font-mono font-bold">
+                    {currencies.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          handleCurrencyChange(c);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`py-1 rounded-lg text-center transition-colors cursor-pointer ${
+                          state.settings.currency === c
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {c === 'EGP' ? (isAr ? 'ج.م' : 'EGP') : c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile Install */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenMobileModal();
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors cursor-pointer border-t border-slate-100 mt-1"
+                >
+                  <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <span>{isAr ? 'التثبيت والفتح على الهاتف' : 'Install on Mobile (PWA)'}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

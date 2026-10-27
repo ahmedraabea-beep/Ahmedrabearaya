@@ -5,6 +5,7 @@ import { MainAppLayout } from './components/layout/MainAppLayout';
 import { translations } from './utils/i18n';
 import { SalesRecord } from './types/sales';
 import { CONCORD_BRANCH_NAME } from './data/sampleData';
+import { mergeIncentiveDataIntoSalesRecords } from './utils/excelParser';
 
 // Modals
 import { RecordModal } from './components/RecordModal';
@@ -13,12 +14,10 @@ import { MonthlyReportModal } from './components/MonthlyReportModal';
 import { ExportAndDownloadCenterModal } from './components/ExportAndDownloadCenterModal';
 import { UnifiedAiPromptModal } from './components/UnifiedAiPromptModal';
 import { TargetNotificationCenter } from './components/TargetNotificationCenter';
-import { MobileDeviceModal } from './components/MobileDeviceModal';
 import { IncentivesModal } from './components/IncentivesModal';
 import { IncentiveBreakdownModal } from './components/IncentiveBreakdownModal';
 import { TargetAllocationModal } from './components/TargetAllocationModal';
 import { DownloadManagerNotification } from './components/DownloadManagerNotification';
-import { AndroidMobileShell } from './components/AndroidMobileShell';
 import { ErrorBoundary, PageErrorBoundary } from './components/ErrorBoundary';
 
 // Pages
@@ -38,14 +37,7 @@ function AppContent() {
   const { language, currency, vatDisplayMode } = state.settings;
   const t = translations[language];
 
-  // Mobile Mock Shell mode (optional simulated phone view)
-  const [isSimulatedMobileView, setIsSimulatedMobileView] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('raya_simulated_mobile_view') === 'true';
-    } catch {
-      return false;
-    }
-  });
+
 
   // Global Quick Action Modals
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -67,15 +59,7 @@ function AppContent() {
     document.title = `${t.appName} - ${t.appSubtitle}`;
   }, [language, t]);
 
-  const toggleSimulatedMobileView = () => {
-    setIsSimulatedMobileView((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('raya_simulated_mobile_view', String(next));
-      } catch {}
-      return next;
-    });
-  };
+
 
   const handleSaveRecord = (data: {
     id?: string;
@@ -220,52 +204,6 @@ function AppContent() {
     }
   };
 
-  // If user explicitly toggled Android Mock Phone Shell
-  if (isSimulatedMobileView) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-start p-2 sm:p-4">
-        {/* Banner to switch back to Full App */}
-        <div className="w-full max-w-md mb-2 flex items-center justify-between bg-slate-800 text-white px-4 py-2 rounded-xl text-xs">
-          <span>{language === 'ar' ? 'واجهة الهاتف التجريبية' : 'Simulated Mobile View'}</span>
-          <button
-            onClick={toggleSimulatedMobileView}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-bold cursor-pointer"
-          >
-            {language === 'ar' ? 'الرجوع للنظام الكامل' : 'Switch to Full App'}
-          </button>
-        </div>
-
-        <div className="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-700">
-          <AndroidMobileShell
-            records={state.records}
-            targetStructure={currentPeriodTarget}
-            incentiveRules={state.incentiveRules}
-            auditReport={null}
-            language={language}
-            currency={currency}
-            vatDisplayMode={vatDisplayMode}
-            onToggleVatMode={() => {
-              dispatch({
-                type: 'SET_SETTINGS',
-                payload: { vatDisplayMode: vatDisplayMode === 'afterVat' ? 'beforeVat' : 'afterVat' },
-              });
-              saveStoreNow();
-            }}
-            onSwitchToDesktop={toggleSimulatedMobileView}
-            onOpenUploadModal={() => setIsUploadModalOpen(true)}
-            onOpenIncentivesModal={() => setIsIncentivesModalOpen(true)}
-            onOpenTargetModal={() => setIsTargetModalOpen(true)}
-            onOpenMonthlyReportModal={() => setIsMonthlyReportModalOpen(true)}
-            onOpenDownloadCenter={() => setIsDownloadCenterOpen(true)}
-            onOpenUnifiedPrompt={() => setIsUnifiedPromptModalOpen(true)}
-            onOpenInventoryOptimizer={() => navigate('/inventory')}
-            onSelectIncentiveRecord={(rec) => setSelectedIncentiveRecord(rec)}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <MainAppLayout
       onOpenUpload={() => setIsUploadModalOpen(true)}
@@ -302,6 +240,14 @@ function AppContent() {
         onImportRecords={handleImportRecords}
         onImportStockItems={(items) => {
           dispatch({ type: 'SET_INVENTORY_ITEMS', payload: items });
+          saveStoreNow();
+        }}
+        onImportIncentiveSheet={(res) => {
+          if (res.productRules && res.productRules.length > 0) {
+            dispatch({ type: 'SET_INCENTIVE_RULES', payload: res.productRules });
+          }
+          const merged = mergeIncentiveDataIntoSalesRecords(state.records, res);
+          dispatch({ type: 'SET_RECORDS', payload: merged.updatedRecords });
           saveStoreNow();
         }}
         language={language}
@@ -357,11 +303,7 @@ function AppContent() {
         }}
       />
 
-      <MobileDeviceModal
-        isOpen={isMobileModalOpen}
-        onClose={() => setIsMobileModalOpen(false)}
-        language={language}
-      />
+
 
       <IncentivesModal
         isOpen={isIncentivesModalOpen}

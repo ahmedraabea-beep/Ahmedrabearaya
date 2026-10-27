@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useDataStore } from '../store/DataStore';
 import { selectDataConsistencyReport } from '../store/selectors';
-import { MobileDeviceModal } from '../components/MobileDeviceModal';
 import { TargetNotificationCenter } from '../components/TargetNotificationCenter';
 import { GitHubSettings } from '../components/GitHubSettings';
 import {
@@ -461,12 +460,7 @@ export const SettingsPage: React.FC = () => {
         <GitHubSettings language={language} />
       </div>
 
-      {/* Modals Hosted in Settings */}
-      <MobileDeviceModal
-        isOpen={isMobileModalOpen}
-        onClose={() => setIsMobileModalOpen(false)}
-        language={language}
-      />
+
 
       <TargetNotificationCenter
         isOpen={isNotificationCenterOpen}

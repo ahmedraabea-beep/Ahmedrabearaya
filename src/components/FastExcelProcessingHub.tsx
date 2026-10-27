@@ -95,6 +95,7 @@ export const FastExcelProcessingHub: React.FC<FastExcelProcessingHubProps> = ({
   language,
   currency,
   records,
+  incentiveRules = [],
   targetStructure,
   vatDisplayMode,
   onToggleVatMode,
@@ -429,6 +430,13 @@ export const FastExcelProcessingHub: React.FC<FastExcelProcessingHubProps> = ({
         return;
       }
 
+      if (result.detectedType === 'incentive') {
+        setProcessingProgress(null);
+        setIsProcessingSales(false);
+        await handleProcessIncentiveFile(file);
+        return;
+      }
+
       if (result.error || result.needsManualMapping || result.records.length === 0) {
         setProcessingProgress(null);
         setIsProcessingSales(false);
@@ -452,7 +460,24 @@ export const FastExcelProcessingHub: React.FC<FastExcelProcessingHubProps> = ({
       updateProgress(75, isAr ? 'احتساب ضريبة 14% والأقسام' : 'Calculating 14% VAT & splits', isAr ? 'معايرة مبيعات الهواتف والإكسسوار والضريبة...' : 'Reconciling VAT and department sales...');
       await new Promise((r) => setTimeout(r, isLarge ? 100 : 50));
 
-      const { auditedRecords, report } = auditRecordsAndFix(result.records);
+      let initialRecords = result.records;
+      if (incentiveRules && incentiveRules.length > 0) {
+        const dummyIncentiveResult: ParseIncentiveResult = {
+          isEmployeeBased: false,
+          employeeIncentives: [],
+          productRules: incentiveRules,
+          branchTierSchemes: [],
+          worksheets: [],
+          emptySheets: [],
+          unresolvedRules: [],
+          headers: [],
+          totalIncentiveAmount: 0,
+        };
+        const merged = mergeIncentiveDataIntoSalesRecords(initialRecords, dummyIncentiveResult);
+        initialRecords = merged.updatedRecords;
+      }
+
+      const { auditedRecords, report } = auditRecordsAndFix(initialRecords);
       onImportSalesRecords(auditedRecords, 'replace');
       onUpdateRecordsWithAudit(auditedRecords, report);
 

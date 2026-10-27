@@ -346,6 +346,55 @@ export function classifyProductCategory(params: {
   const searchName = description || name || model || '';
   const normName = normalizeArabicText(searchName);
 
+  const cleanDept = (departmentStr || '').trim().toLowerCase();
+  const cleanCat = (categoryStr || '').trim().toLowerCase();
+
+  // --- Step 0: Explicit Department Name & Category Name from Raya Oracle ERP (Details Sales) ---
+  if (cleanDept === 'handsets' || cleanCat === 'new handsets') {
+    return {
+      department: 'mobiles',
+      departmentAr: 'موبايلات',
+      departmentEn: 'Mobiles & Tablets',
+      matchedFromStock: false,
+      matchedStockItem: undefined,
+      classificationRule: `تصنيف راية المباشر: Handsets / New Handsets (${departmentStr || categoryStr})`,
+    };
+  }
+
+  if (
+    cleanDept === 'mobile accessories' ||
+    cleanDept === 'computer accessories' ||
+    cleanCat.includes('accessories') ||
+    cleanDept.includes('accessories')
+  ) {
+    return {
+      department: 'accessories',
+      departmentAr: 'إكسسوارات',
+      departmentEn: 'Accessories',
+      matchedFromStock: false,
+      matchedStockItem: undefined,
+      classificationRule: `تصنيف راية المباشر: Accessories (${departmentStr || categoryStr})`,
+    };
+  }
+
+  if (
+    cleanDept === 'electronics' ||
+    cleanDept === 'home appliance' ||
+    cleanDept === 'small home appliance' ||
+    cleanDept === 'services' ||
+    cleanDept === 'all' ||
+    cleanDept === 'vehicle'
+  ) {
+    return {
+      department: 'other',
+      departmentAr: 'أجهزة أخرى وشاشات',
+      departmentEn: 'Other Appliances & Screens',
+      matchedFromStock: false,
+      matchedStockItem: undefined,
+      classificationRule: `تصنيف راية المباشر: Electronics/Appliances (${departmentStr || categoryStr})`,
+    };
+  }
+
   // --- Step 1: Check Stock Sheet / InventoryItems first (المرجعية الأولى) ---
   if (effectiveStock && effectiveStock.length > 0) {
     let matchedItem: InventoryItem | undefined;

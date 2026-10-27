@@ -53,6 +53,7 @@ interface UploadModalProps {
   onClose: () => void;
   onImportRecords: (newRecords: SalesRecord[], mode: 'replace' | 'append') => void;
   onImportStockItems?: (newItems: InventoryItem[], fileName: string) => void;
+  onImportIncentiveSheet?: (result: any) => void;
   language: Language;
   onOpenTargetAllocation?: () => void;
   onOpenUnifiedAiPrompt?: () => void;
@@ -63,6 +64,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
   onClose,
   onImportRecords,
   onImportStockItems,
+  onImportIncentiveSheet,
   language,
   onOpenTargetAllocation,
   onOpenUnifiedAiPrompt,
@@ -161,6 +163,12 @@ export const UploadModal: React.FC<UploadModalProps> = ({
           isoDate: result.latestDate,
           formattedAr: result.latestDateFormattedAr,
         });
+      }
+
+      if (result.detectedType === 'incentive' && result.incentiveResult) {
+        onImportIncentiveSheet?.(result.incentiveResult);
+        onClose();
+        return;
       }
 
       if (result.detectedType === 'stock' || (result.stockItems && result.stockItems.length > 0)) {

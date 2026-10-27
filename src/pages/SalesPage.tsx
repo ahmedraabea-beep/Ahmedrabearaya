@@ -27,6 +27,7 @@ import { RayaThreeSheetsReconciliationCard } from '../components/RayaThreeSheets
 import { ExcelValidationReportModal } from '../components/ExcelValidationReportModal';
 import { RecordModal } from '../components/RecordModal';
 import { UploadModal } from '../components/UploadModal';
+import { SalesPivotAnalysis } from '../components/SalesPivotAnalysis';
 import { exportRecordsToExcel, ParseIncentiveResult } from '../utils/excelParser';
 import { SalesRecord, AuditReport } from '../types/sales';
 import { InventoryItem } from '../types/inventory';
@@ -51,7 +52,19 @@ export const SalesPage: React.FC<SalesPageProps> = ({
   onEditRecord,
 }) => {
   const { state, dispatch } = useDataStore();
-  const [activeTab, setActiveTab] = useState<'records' | 'uploadHub' | 'audit'>('records');
+  const [activeTab, setActiveTab] = useState<'records' | 'uploadHub' | 'audit' | 'analysis'>('records');
+
+  React.useEffect(() => {
+    const handleHashCheck = () => {
+      const hash = window.location.hash;
+      if (hash.includes('tab=analysis') || hash.includes('cat=') || hash.includes('brand=')) {
+        setActiveTab('analysis');
+      }
+    };
+    handleHashCheck();
+    window.addEventListener('hashchange', handleHashCheck);
+    return () => window.removeEventListener('hashchange', handleHashCheck);
+  }, []);
 
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -175,25 +188,37 @@ export const SalesPage: React.FC<SalesPageProps> = ({
       {/* ── Page Header & Sub-Tabs ── */}
       <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Segmented Sub-Tab Switcher */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80 overflow-x-auto">
           <button
             onClick={() => setActiveTab('records')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'records'
                 ? 'bg-white text-emerald-800 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Receipt className="w-4 h-4 text-emerald-600" />
-            <span>{isAr ? 'سجلات المبيعات والمعاملات' : 'Sales Records'}</span>
+            <span>{isAr ? 'سجلات المبيعات' : 'Sales Records'}</span>
             <span className="text-[10px] bg-slate-200 px-1.5 py-0.2 rounded-full font-mono">
               {filteredRecords.length}
             </span>
           </button>
 
           <button
+            onClick={() => setActiveTab('analysis')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
+              activeTab === 'analysis'
+                ? 'bg-white text-blue-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-blue-600" />
+            <span>{isAr ? 'تحليل المبيعات (Pivot)' : 'Sales Analysis (Pivot)'}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('uploadHub')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'uploadHub'
                 ? 'bg-white text-emerald-800 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
@@ -205,14 +230,14 @@ export const SalesPage: React.FC<SalesPageProps> = ({
 
           <button
             onClick={() => setActiveTab('audit')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
               activeTab === 'audit'
                 ? 'bg-white text-emerald-800 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <ShieldCheck className="w-4 h-4 text-purple-600" />
-            <span>{isAr ? 'مطابقة الجودة والـ 21 عمود' : 'Quality & 21-Col Audit'}</span>
+            <span>{isAr ? 'مطابقة الجودة' : 'Quality Audit'}</span>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-bold">
               100%
             </span>
@@ -278,6 +303,17 @@ export const SalesPage: React.FC<SalesPageProps> = ({
             onOpenAddRecord={handleOpenAdd}
             onResetFilters={handleResetFilters}
             onViewIncentive={onViewIncentive}
+            language={state.settings.language}
+          />
+        </div>
+      )}
+
+      {/* ── TAB 2: تحليل المبيعات (Pivot) ── */}
+      {activeTab === 'analysis' && (
+        <div className="space-y-4 animate-in fade-in duration-150">
+          <SalesPivotAnalysis
+            records={filteredRecords}
+            currency={currency}
             language={state.settings.language}
           />
         </div>

@@ -161,6 +161,8 @@ export interface ParseResult {
   isTransactionLevel?: boolean;
   transactionCount?: number;
   validationReport?: SheetRowValidationReport;
+  incentiveResult?: ParseIncentiveResult;
+  totalIncentiveAmount?: number;
 }
 
 export interface ParsedIncentiveRow {
@@ -341,6 +343,11 @@ export function parseArabicOrWesternNumber(rawVal: unknown, fallback: number = 0
     return fallback;
   }
 
+  // Detect negative sign before stripping noise
+  const isNegative =
+    (str.includes('(') && str.includes(')')) ||
+    /[-–—\u2212]/.test(str);
+
   // Convert Eastern Arabic numerals (٠-٩) and Persian numerals (۰-۹)
   const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   for (let i = 0; i < 10; i++) {
@@ -353,14 +360,6 @@ export function parseArabicOrWesternNumber(rawVal: unknown, fallback: number = 0
 
   str = str.replace(/[\u066B\u060C]/g, '.');
   str = str.replace(/[\u066C]/g, '');
-
-  const isNegative =
-    (str.includes('(') && str.includes(')')) ||
-    str.startsWith('-') ||
-    str.endsWith('-') ||
-    str.startsWith('–') ||
-    str.startsWith('—') ||
-    str.startsWith('\u2212');
 
   // Strip currency words, percentage signs, units, and non-numeric noise
   str = str.replace(/ج\.?م\.?|جنيه\s*مصري|جنيه|EGP|L\.?E\.?|USD|SAR|EUR|AED|ريال|درهم|\$|%|٪|قطع|قطعة|وحدات|وحدة|pcs|unit/gi, '');
@@ -1067,11 +1066,11 @@ export function detectColumns(headers: string[], ignoreSaved: boolean = false): 
   if (custIdCand) mapping.customerIdColumn = custIdCand.raw;
 
   // 1. Branch / Warehouse Name Column:
-  // Match WH Name, Warehouse Name, Branch, Store, اسم الفرع, المعرض
+  // Match WH Name, Warehouse Name, Branch, Store, Store Name, اسم الفرع, المعرض
   const branchCand = cleanList.find((c) =>
-    /^(wh\s*name|warehouse\s*name|branch\s*name|store\s*name|اسم\s*الفرع|اسم\s*المعرض|اسم\s*المخزن)$/i.test(c.raw)
+    /^(wh\s*name|store\s*name|warehouse\s*name|branch\s*name|اسم\s*الفرع|اسم\s*المعرض|اسم\s*المخزن)$/i.test(c.raw)
   ) || cleanList.find((c) =>
-    /wh\s*name|warehouse.*name/i.test(c.stripped) ||
+    /wh\s*name|store\s*name|warehouse.*name/i.test(c.stripped) ||
     /اسم.*فرع|فرع|معرض|محل|تجمع|كونكورد|branch|store|location|city/i.test(c.stripped)
   ) || cleanList.find((c) =>
     /^(wh|warehouse|فرع|معرض)$/i.test(c.clean)
@@ -1079,22 +1078,22 @@ export function detectColumns(headers: string[], ignoreSaved: boolean = false): 
   if (branchCand) mapping.branchColumn = branchCand.raw;
 
   // 1b. Warehouse Code Column:
-  // Match WH, WH Code, Warehouse Code, Store Code, كود المخزن, كود الفرع
+  // Match WH ID, Store ID, WH, WH Code, Warehouse Code, Store Code, كود المخزن, كود الفرع
   const whCodeCand = cleanList.find((c) =>
-    /^(wh|wh\s*code|warehouse\s*code|store\s*code|كود\s*المخزن|كود\s*الفرع)$/i.test(c.raw) &&
+    /^(wh\s*id|store\s*id|wh|wh\s*code|warehouse\s*code|store\s*code|كود\s*المخزن|كود\s*الفرع)$/i.test(c.raw) &&
     (!branchCand || c.raw !== branchCand.raw)
   ) || cleanList.find((c) =>
-    /^(wh|wh_code)$/i.test(c.clean) &&
+    /wh\s*id|store\s*id|^(wh|wh_code)$/i.test(c.clean) &&
     (!branchCand || c.raw !== branchCand.raw)
   );
   if (whCodeCand) mapping.warehouseCodeColumn = whCodeCand.raw;
 
   // 2. Employee ID / HR Code Column:
-  // Match Sales Rep HR, Rep HR, Sales Rep Code, HR Code, HR, Employee ID, Emp ID, Job ID, كود الموظف, الرقم الوظيفي
+  // Match Sales Rep HR ID, Rep HR ID, HR ID, Sales Rep HR, Rep HR, Sales Rep Code, HR Code, HR, Employee ID, Emp ID, Job ID, كود الموظف, الرقم الوظيفي
   const idCand = cleanList.find((c) =>
-    /^(sales\s*rep\s*hr|rep\s*hr|sales\s*rep\s*code|salesrephr|hr\s*code|sales\s*hr)$/i.test(c.raw)
+    /^(sales\s*rep\s*hr\s*id|rep\s*hr\s*id|hr\s*id|sales\s*rep\s*hr|rep\s*hr|sales\s*rep\s*code|salesrephr|hr\s*code|sales\s*hr)$/i.test(c.raw)
   ) || cleanList.find((c) =>
-    /rep.*hr|sales.*hr|كود.*(موظف|بائع|مستشار)|رقم.*(وظيفي|موظف|بائع)|كود.*وظيفي|رمز.*موظف|empid|jobid|emp_id|badge|staff.*id/i.test(c.stripped)
+    /sales\s*rep\s*hr\s*id|rep\s*hr\s*id|hr\s*id|rep.*hr|sales.*hr|كود.*(موظف|بائع|مستشار)|رقم.*(وظيفي|موظف|بائع)|كود.*وظيفي|رمز.*موظف|empid|jobid|emp_id|badge|staff.*id/i.test(c.stripped)
   ) || cleanList.find((c) =>
     /^(كود|الرقم|id|code|hr)$/i.test(c.clean)
   );
@@ -1524,12 +1523,59 @@ export function buildStockItemsFromRows(
   const defaultIso = sheetMaxDate ? `${sheetMaxDate.getFullYear()}-${String(sheetMaxDate.getMonth() + 1).padStart(2, '0')}-${String(sheetMaxDate.getDate()).padStart(2, '0')}` : undefined;
   const defaultAr = sheetMaxDate ? `${sheetMaxDate.getDate()} ${arabicMonthNames[sheetMaxDate.getMonth()]} ${sheetMaxDate.getFullYear()}` : undefined;
 
+  // Detect if rows represent a vertical multi-store ledger (Oracle / Raya Retail Stock extract)
+  const sampleRow = rows.length > 0 ? rows[0] : {};
+  const sampleKeys = Object.keys(sampleRow);
+  const cleanKeys = sampleKeys.map((k) => ({
+    raw: k,
+    clean: cleanHeader(k),
+    stripped: stripArabicPrefixes(k),
+  }));
+
+  const storeIdKey = cleanKeys.find((k) =>
+    /^(store\s*id|wh\s*id|wh|store\s*code|كود\s*المخزن|كود\s*الفرع)$/i.test(k.raw) ||
+    /store.*id|wh.*id|كود.*(مخزن|فرع)/i.test(k.stripped)
+  )?.raw;
+
+  const storeNameKey = cleanKeys.find((k) =>
+    /^(store\s*name|wh\s*name|branch\s*name|اسم\s*الفرع|اسم\s*المخزن)$/i.test(k.raw) ||
+    /store.*name|wh.*name|اسم.*(فرع|مخزن)/i.test(k.stripped)
+  )?.raw;
+
+  const itemCodeKey = cleanKeys.find((k) =>
+    /^(item\s*code|itemcode|sku|كود\s*الصنف|كود_الصنف)$/i.test(k.raw) ||
+    /item.*code|كود.*صنف/i.test(k.stripped)
+  )?.raw || mapping.skuColumn;
+
+  const itemDescKey = cleanKeys.find((k) =>
+    /^(item\s*description|description|وصف\s*الصنف|بيان\s*الصنف)$/i.test(k.raw) ||
+    /item.*description|وصف.*صنف/i.test(k.stripped)
+  )?.raw || mapping.nameColumn;
+
+  const qtyAtpKey = cleanKeys.find((k) =>
+    /^(qty\s*atp|atp|الكمية\s*المتاحة)$/i.test(k.raw) || /qty.*atp|atp/i.test(k.stripped)
+  )?.raw;
+
+  const qtyOnHandKey = cleanKeys.find((k) =>
+    /^(qty\s*on-?hand|on-?hand|الكمية\s*الفعلية)$/i.test(k.raw) || /on.*hand/i.test(k.stripped)
+  )?.raw;
+
+  const genericQtyKey = cleanKeys.find((k) =>
+    /^(qty|quantity|الكمية|الرصيد)$/i.test(k.raw) || /^(qty|quantity|كميه|رصيد)$/i.test(k.clean)
+  )?.raw;
+
+  const isVerticalStoreLedger = Boolean(
+    (storeIdKey || storeNameKey) &&
+    (itemCodeKey || itemDescKey) &&
+    (qtyAtpKey || qtyOnHandKey || genericQtyKey)
+  );
+
   // Map to hold best/latest row per item SKU / Name
   const itemMap = new Map<string, { item: InventoryItem; dateObj: Date | null; rowIndex: number }>();
 
   rows.forEach((row, idx) => {
-    const rawSku = mapping.skuColumn ? getRowValue(row, mapping.skuColumn) : '';
-    const rawName = mapping.nameColumn ? getRowValue(row, mapping.nameColumn) : '';
+    const rawSku = (isVerticalStoreLedger && itemCodeKey) ? getRowValue(row, itemCodeKey) : (mapping.skuColumn ? getRowValue(row, mapping.skuColumn) : '');
+    const rawName = (isVerticalStoreLedger && itemDescKey) ? getRowValue(row, itemDescKey) : (mapping.nameColumn ? getRowValue(row, mapping.nameColumn) : '');
 
     const cleanSkuStr = String(rawSku || '').trim();
     const cleanNameStr = String(rawName || '').trim();
@@ -1539,8 +1585,8 @@ export function buildStockItemsFromRows(
 
     // Skip repeated header row
     if (
-      /^(كود|رمز|باركود|صنف|ماده|sku|code|barcode)$/i.test(cleanSkuStr) ||
-      /^(اسم|موديل|وصف|بيان|صنف|جهاز|description|model|product|name)$/i.test(cleanNameStr)
+      /^(كود|رمز|باركود|صنف|ماده|sku|code|barcode|item\s*code)$/i.test(cleanSkuStr) ||
+      /^(اسم|موديل|وصف|بيان|صنف|جهاز|description|model|product|name|item\s*description)$/i.test(cleanNameStr)
     ) {
       return;
     }
@@ -1571,21 +1617,43 @@ export function buildStockItemsFromRows(
     }
     if (!rowDate) {
       for (const [k, v] of Object.entries(row)) {
-        if (/تاريخ|يوم|date|snapshot/i.test(k)) {
+        if (/تاريخ|يوم|date|snapshot|run\s*date/i.test(k)) {
           const d = parseSheetDate(v, true);
           if (d) { rowDate = d; break; }
         }
       }
     }
 
-    const rawConcorde = mapping.concordeStockColumn ? getRowValue(row, mapping.concordeStockColumn) : 0;
-    const concordeStock = Math.max(0, Math.round(parseArabicOrWesternNumber(rawConcorde, 0)));
+    let concordeStock = 0;
+    let mainWarehouseStock = 0;
 
-    const rawWarehouse = mapping.mainWarehouseStockColumn ? getRowValue(row, mapping.mainWarehouseStockColumn) : undefined;
-    let mainWarehouseStock = rawWarehouse !== undefined ? Math.max(0, Math.round(parseArabicOrWesternNumber(rawWarehouse, 0))) : 0;
+    if (isVerticalStoreLedger) {
+      const storeIdVal = storeIdKey ? String(getRowValue(row, storeIdKey) || '').trim() : '';
+      const storeNameVal = storeNameKey ? String(getRowValue(row, storeNameKey) || '').trim() : '';
+      const isConcorde =
+        storeIdVal === '0032' ||
+        storeIdVal === '32' ||
+        /concorde|كونكورد|105/i.test(storeNameVal);
+      const isMainWH =
+        storeIdVal === '4016' ||
+        /main.*wh|central|قطام|رئيسي/i.test(storeNameVal);
 
-    if (!mapping.mainWarehouseStockColumn && concordeStock <= 1) {
-      mainWarehouseStock = (idx % 3 === 0) ? 12 : (idx % 2 === 0) ? 8 : 4;
+      const rawRowQty = qtyAtpKey
+        ? getRowValue(row, qtyAtpKey)
+        : (qtyOnHandKey ? getRowValue(row, qtyOnHandKey) : (genericQtyKey ? getRowValue(row, genericQtyKey) : 0));
+      const parsedRowQty = Math.max(0, Math.round(parseArabicOrWesternNumber(rawRowQty, 0)));
+
+      if (isConcorde) {
+        concordeStock = parsedRowQty;
+      } else if (isMainWH || !isConcorde) {
+        mainWarehouseStock = parsedRowQty;
+      }
+    } else {
+      const rawConcorde = mapping.concordeStockColumn ? getRowValue(row, mapping.concordeStockColumn) : 0;
+      concordeStock = Math.max(0, Math.round(parseArabicOrWesternNumber(rawConcorde, 0)));
+
+      const rawWarehouse = mapping.mainWarehouseStockColumn ? getRowValue(row, mapping.mainWarehouseStockColumn) : undefined;
+      mainWarehouseStock = rawWarehouse !== undefined ? Math.max(0, Math.round(parseArabicOrWesternNumber(rawWarehouse, 0))) : 0;
     }
 
     const rawVelocity = mapping.salesVelocityColumn ? getRowValue(row, mapping.salesVelocityColumn) : undefined;
@@ -1599,12 +1667,6 @@ export function buildStockItemsFromRows(
       else if (/a55|a35|redmi note|reno/i.test(name)) priceEgp = 18000;
       else if (/airpods|watch|buds|powerbank|charger|joyroom|anker/i.test(name)) priceEgp = 3500;
       else priceEgp = 8500;
-    }
-
-    if (!mapping.salesVelocityColumn && monthlySalesVelocity === 0) {
-      if (priceEgp >= 40000) monthlySalesVelocity = 12;
-      else if (priceEgp >= 15000) monthlySalesVelocity = 18;
-      else monthlySalesVelocity = 25;
     }
 
     let category: InventoryItem['category'] = 'smartphones';
@@ -1662,25 +1724,20 @@ export function buildStockItemsFromRows(
       dateFormattedAr: effectiveDateAr,
     };
 
-    // Deduplication by SKU or Item Name: automatically select and prioritize LATEST DATE
+    // Deduplication / Aggregation by SKU or Item Name across stores and locations
     const itemKey = (sku && sku !== 'SKU-' && !sku.startsWith('SKU-00')) ? sku.toLowerCase() : normalizeArabicText(name);
     if (!itemMap.has(itemKey)) {
       itemMap.set(itemKey, { item: parsedItem, dateObj: rowDate, rowIndex: idx });
     } else {
       const existing = itemMap.get(itemKey)!;
-      // If current row has a newer date than existing, replace with the newer snapshot
+      // In multi-store ledger or multi-bin sheet, aggregate quantities across rows
+      existing.item.concordeStock += concordeStock;
+      existing.item.mainWarehouseStock += mainWarehouseStock;
+      existing.item.monthlySalesVelocity += monthlySalesVelocity;
       if (rowDate && (!existing.dateObj || rowDate.getTime() > existing.dateObj.getTime())) {
-        itemMap.set(itemKey, { item: parsedItem, dateObj: rowDate, rowIndex: idx });
-      } else if (rowDate && existing.dateObj && rowDate.getTime() === existing.dateObj.getTime()) {
-        // Same date: multiple batches/bins -> sum inventory quantities
-        existing.item.concordeStock += parsedItem.concordeStock;
-        existing.item.mainWarehouseStock += parsedItem.mainWarehouseStock;
-        existing.item.monthlySalesVelocity += parsedItem.monthlySalesVelocity;
-      } else if (!rowDate && !existing.dateObj) {
-        // If neither has dates, sum inventory quantities
-        existing.item.concordeStock += parsedItem.concordeStock;
-        existing.item.mainWarehouseStock += parsedItem.mainWarehouseStock;
-        existing.item.monthlySalesVelocity += parsedItem.monthlySalesVelocity;
+        existing.dateObj = rowDate;
+        existing.item.date = effectiveDateIso;
+        existing.item.dateFormattedAr = effectiveDateAr;
       }
     }
   });
@@ -2210,6 +2267,7 @@ export async function parseExcelOrCsvFile(file: File): Promise<ParseResult> {
     }
 
     if (!isSalesTrx && (detectedSheetKind === 'incentive' || looksLikeIncentiveSheet(headers))) {
+      const incentiveResult = await parseIncentiveExcelOrCsvFile(file);
       return {
         records: [],
         detectedMapping: { branchColumn: '', employeeColumn: '', targetColumn: '', actualColumn: '' },
@@ -2217,14 +2275,8 @@ export async function parseExcelOrCsvFile(file: File): Promise<ParseResult> {
         rawRows: jsonData,
         needsManualMapping: false,
         detectedType: 'incentive',
-        error: 'يبدو أن هذا الملف هو شيت حوافز وعمولات وليس شيت مبيعات. يرجى إرفاقه في خانة شيت الحافز المخصصة.',
-        structuralErrorDetails: {
-          cause: 'العناوين والأعمدة في الشيت تشير إلى مستحقات حوافز ومكافآت بيعية وليس شيت مبيعات يومية.',
-          missingColumns: ['المبيعات المحققة', 'التارجت المطلوب'],
-          foundHeaders: headers,
-          suggestion: 'يرجى رفع هذا الملف في خانة "شيت الحافز والعمولات" الخاصة بالمستشارين ليتم ربطه تلقائياً.',
-          totalRowsFound: jsonData.length,
-        },
+        incentiveResult,
+        totalIncentiveAmount: incentiveResult.totalIncentiveAmount,
       };
     }
 
@@ -2699,6 +2751,13 @@ export function validateAndReconcileSheetRows(
     }
     seenRowKeys.add(dedupeKey);
 
+    // 6a. Check for Oracle / Raya footer total row (e.g. row 689 in Details Sales)
+    // Footer row lacks Transaction ID, Sales Rep Name, Sales Rep HR ID, Item Code, and Description, but has huge Amount
+    if (isPosTransactions && !rawTrxId && !rawEmp && !rawEmpId && !itemCodeVal && !descVal) {
+      subtotalRowsSkipped++;
+      return;
+    }
+
     // 6. Advisor matching & resolution (Preserve source employee ID verbatim including leading zeros)
     const knownAdvisor = matchKnownAdvisor(rawEmpId, rawEmp);
     let finalEmpId = rawEmpId || (knownAdvisor ? knownAdvisor.id : '');
@@ -2774,16 +2833,25 @@ export function validateAndReconcileSheetRows(
         : undefined;
     }
 
-    const installmentRow = mapping.installmentColumn && getRowValue(row, mapping.installmentColumn) !== ''
-      ? parseArabicOrWesternNumber(getRowValue(row, mapping.installmentColumn))
-      : undefined;
+    // Installment detection: check if Category Name equals 'Installment' or contains installment/تقسيط
+    let isInstallmentCategory = false;
+    if (isPosTransactions) {
+      const catVal = mapping.categoryColumn ? String(getRowValue(row, mapping.categoryColumn) || '').trim() : '';
+      if (/installment|تقسيط/i.test(catVal)) {
+        isInstallmentCategory = true;
+      }
+    }
+    const installmentRow = isInstallmentCategory
+      ? actualAfterVat
+      : (mapping.installmentColumn && getRowValue(row, mapping.installmentColumn) !== ''
+        ? parseArabicOrWesternNumber(getRowValue(row, mapping.installmentColumn))
+        : undefined);
 
     const rowTarget = mapping.targetColumn ? parseArabicOrWesternNumber(getRowValue(row, mapping.targetColumn)) : 0;
     const defaultTarget = knownAdvisor ? knownAdvisor.defaultTarget : (rowTarget > 0 ? rowTarget : 400000);
 
     const rDate = parsedDates[idx] || null;
-    const rowPeriod = mapping.periodColumn ? String(getRowValue(row, mapping.periodColumn) || '').trim() : '';
-    const period = overrideLatestDateStr || defaultPeriod || rowPeriod || 'أكتوبر 2026';
+    const period = defaultPeriod || 'أكتوبر 2026';
 
     const empKey = (finalEmpId || finalEmpName).trim().toLowerCase();
 
@@ -2796,14 +2864,17 @@ export function validateAndReconcileSheetRows(
     const currentItemDesc = mapping.itemDescriptionColumn
       ? String(getRowValue(row, mapping.itemDescriptionColumn) || '')
       : (mapping.modelColumn ? String(getRowValue(row, mapping.modelColumn) || '') : '');
-    const currentItemQty = mapping.qtyColumn ? parseArabicOrWesternNumber(getRowValue(row, mapping.qtyColumn), 1) : 1;
-    totalParsedQty += (currentItemQty > 0 ? currentItemQty : 1);
+    const rawQtyCell = mapping.qtyColumn ? getRowValue(row, mapping.qtyColumn) : undefined;
+    const currentItemQty = (rawQtyCell !== undefined && rawQtyCell !== null && String(rawQtyCell).trim() !== '')
+      ? parseArabicOrWesternNumber(rawQtyCell, 1)
+      : 1;
+    totalParsedQty += currentItemQty;
     const currentItemPrice = mapping.priceColumn ? parseArabicOrWesternNumber(getRowValue(row, mapping.priceColumn), 0) : 0;
 
     const txItem = (currentItemCode || currentItemDesc) ? {
       itemCode: currentItemCode,
       description: currentItemDesc || `صنف كود ${currentItemCode}`,
-      qty: currentItemQty > 0 ? currentItemQty : 1,
+      qty: currentItemQty,
       price: currentItemPrice,
       amount: actualAfterVat,
       department: (mobilesRow && mobilesRow > 0) ? ('mobiles' as const) : (accessoriesRow && accessoriesRow > 0) ? ('accessories' as const) : ('other' as const),
@@ -3163,9 +3234,11 @@ export function extractTablesFromIncentiveSheet2D(
     }
   }
 
-  // Find candidate table header rows
+  // Find candidate table header blocks in 2D space (handling both side-by-side and stacked tables)
   interface TableCandidate {
     headerRowIndex: number;
+    colStart: number;
+    colEnd: number;
     tableType: 'product_incentives' | 'branch_tier_scheme' | 'advisor_summary';
     headers: string[];
     bannerContext?: string;
@@ -3178,68 +3251,116 @@ export function extractTablesFromIncentiveSheet2D(
     const row = sheet2d[r];
     if (!Array.isArray(row) || row.length === 0) continue;
 
-    const nonBlank = row.filter((c) => c !== null && c !== undefined && String(c).trim() !== '' && !String(c).startsWith('__EMPTY'));
-    if (nonBlank.length === 0) continue;
+    const nonBlankCells = row
+      .map((c, idx) => ({ c, idx }))
+      .filter(({ c }) => c !== null && c !== undefined && String(c).trim() !== '' && !String(c).startsWith('__EMPTY'));
+
+    if (nonBlankCells.length === 0) continue;
 
     // Single-cell text or banner row: collect as context for next table
-    if (nonBlank.length === 1 && String(nonBlank[0]).length > 8) {
-      pendingBannerContext = String(nonBlank[0]).trim();
+    if (nonBlankCells.length === 1 && String(nonBlankCells[0].c).length > 6) {
+      pendingBannerContext = String(nonBlankCells[0].c).trim();
       continue;
     }
 
-    if (nonBlank.length < 2) continue;
+    // Partition row into column intervals [cStart, cEnd] separated by 2+ blank cells or table anchor keywords
+    const intervals: { cStart: number; cEnd: number }[] = [];
+    let curStart = nonBlankCells[0].idx;
+    let curEnd = nonBlankCells[0].idx;
 
-    const rowStrings = row.map((c, i) => String(c ?? '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim() || `عمود_${i + 1}`);
-    const rowText = rowStrings.join(' ').toLowerCase();
+    for (let i = 1; i < nonBlankCells.length; i++) {
+      const prevIdx = nonBlankCells[i - 1].idx;
+      const thisIdx = nonBlankCells[i].idx;
+      const cellText = String(nonBlankCells[i].c).toLowerCase();
+      const isNewAnchor = /(كود|item.*code|sku|رمز|تارجت|target|مستهدف|شريحة|tier|موظف|employee|branch|فرع)/i.test(cellText);
 
-    // Ignore obvious non-header title / metadata rows
-    if (/^(شركة\s*راية|تقرير\s*إداري|صفحة\s*\d|طبع\s*بواسطة|confidential|user\s*id)/i.test(rowText)) {
-      pendingBannerContext = rowText;
-      continue;
+      // Split into new table if 2+ blank columns between them, or a new anchor appears after 3+ columns
+      if (thisIdx - prevIdx >= 2 || (isNewAnchor && thisIdx - curStart >= 3)) {
+        intervals.push({ cStart: curStart, cEnd: curEnd });
+        curStart = thisIdx;
+        curEnd = thisIdx;
+      } else {
+        curEnd = thisIdx;
+      }
     }
+    intervals.push({ cStart: curStart, cEnd: curEnd });
 
-    // Keyword detection
-    const isEmpTable =
-      /(اسم\s*الموظف|الموظف|المندوب|البائع|employee|staff|sales\s*rep)/i.test(rowText) &&
-      /(حافز|عمولة|بونص|incentive|bonus|amount|مبلغ)/i.test(rowText);
+    for (const interval of intervals) {
+      const slice = row.slice(interval.cStart, interval.cEnd + 1);
+      const rowStrings = slice.map((c, i) =>
+        String(c ?? '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim() || `عمود_${interval.cStart + i + 1}`
+      );
+      const rowText = rowStrings.join(' ').toLowerCase();
 
-    const isBranchTierTable =
-      /(نسبة\s*التحقيق|تارجت|مستهدف|threshold|target|achievement|شريحة|المستوى|tier|level)/i.test(rowText) &&
-      /(مكافأة|مكاف|جائزة|جائز|بونص|prize|bonus|قيمة|مبلغ)/i.test(rowText);
+      // Ignore metadata / report banner rows
+      if (/^(شركة\s*راية|تقرير\s*إداري|صفحة\s*\d|طبع\s*بواسطة|confidential|user\s*id)/i.test(rowText)) {
+        pendingBannerContext = rowText;
+        continue;
+      }
 
-    const isProductTable =
-      /(كود\s*الصنف|كود|item\s*code|sku|رمز|صنف|موديل|منتج|description|model|product|desc|فئة|قسم|category)/i.test(rowText) &&
-      /(قيمة\s*الحافز|حافز|بونص|عمولة|incentive|bonus|rate|amount|مبلغ)/i.test(rowText) &&
-      !isEmpTable;
+      // Check rows above interval for specific table/contest banner title
+      let localBanner = pendingBannerContext;
+      if (r > 0) {
+        const prevRow = sheet2d[r - 1];
+        if (Array.isArray(prevRow)) {
+          const aboveSlice = prevRow.slice(interval.cStart, interval.cEnd + 1)
+            .map((c) => String(c ?? '').trim())
+            .filter(Boolean)
+            .join(' ');
+          if (aboveSlice && aboveSlice.length > 4) {
+            localBanner = aboveSlice;
+          }
+        }
+      }
 
-    if (isEmpTable) {
-      tableCandidates.push({
-        headerRowIndex: r,
-        tableType: 'advisor_summary',
-        headers: rowStrings,
-        bannerContext: pendingBannerContext,
-      });
-      pendingBannerContext = '';
-    } else if (isBranchTierTable) {
-      tableCandidates.push({
-        headerRowIndex: r,
-        tableType: 'branch_tier_scheme',
-        headers: rowStrings,
-        bannerContext: pendingBannerContext,
-      });
-      pendingBannerContext = '';
-    } else if (isProductTable) {
-      tableCandidates.push({
-        headerRowIndex: r,
-        tableType: 'product_incentives',
-        headers: rowStrings,
-        bannerContext: pendingBannerContext,
-      });
-      pendingBannerContext = '';
+      const isEmpTable =
+        /(اسم\s*الموظف|الموظف|المندوب|البائع|employee|staff|sales\s*rep)/i.test(rowText) &&
+        /(حافز|عمولة|بونص|incentive|bonus|amount|مبلغ)/i.test(rowText);
+
+      const isBranchTierTable =
+        /(نسبة\s*التحقيق|تارجت|مستهدف|threshold|target|achievement|شريحة|المستوى|tier|level)/i.test(rowText) &&
+        /(مكافأة|مكاف|جائزة|جائز|بونص|prize|bonus|قيمة|مبلغ)/i.test(rowText);
+
+      const isProductTable =
+        /(كود\s*الصنف|كود|item\s*code|sku|رمز|صنف|موديل|منتج|description|model|product|desc|فئة|قسم|category)/i.test(rowText) &&
+        /(قيمة\s*الحافز|حافز|بونص|عمولة|incentive|bonus|rate|amount|مبلغ)/i.test(rowText) &&
+        !isEmpTable;
+
+      if (isEmpTable) {
+        tableCandidates.push({
+          headerRowIndex: r,
+          colStart: interval.cStart,
+          colEnd: interval.cEnd,
+          tableType: 'advisor_summary',
+          headers: rowStrings,
+          bannerContext: localBanner,
+        });
+        pendingBannerContext = '';
+      } else if (isBranchTierTable) {
+        tableCandidates.push({
+          headerRowIndex: r,
+          colStart: interval.cStart,
+          colEnd: interval.cEnd,
+          tableType: 'branch_tier_scheme',
+          headers: rowStrings,
+          bannerContext: localBanner,
+        });
+        pendingBannerContext = '';
+      } else if (isProductTable) {
+        tableCandidates.push({
+          headerRowIndex: r,
+          colStart: interval.cStart,
+          colEnd: interval.cEnd,
+          tableType: 'product_incentives',
+          headers: rowStrings,
+          bannerContext: localBanner,
+        });
+        pendingBannerContext = '';
+      }
     }
   }
 
-  // Fallback: if no multi-table candidate was identified with strict keywords, try single header detection
+  // Fallback: if no 2D interval candidate was identified with strict keywords, try single header detection
   if (tableCandidates.length === 0) {
     const single = findHeaderRowIn2D(sheet2d);
     if (single.headers.length >= 2) {
@@ -3248,6 +3369,8 @@ export function extractTablesFromIncentiveSheet2D(
       const isTier = /(شريحة|نسبة\s*التحقيق|threshold|tier)/i.test(rowText);
       tableCandidates.push({
         headerRowIndex: single.headerRowIndex,
+        colStart: 0,
+        colEnd: single.headers.length - 1,
         tableType: isEmp ? 'advisor_summary' : isTier ? 'branch_tier_scheme' : 'product_incentives',
         headers: single.headers,
         bannerContext: pendingBannerContext,
@@ -3255,25 +3378,38 @@ export function extractTablesFromIncentiveSheet2D(
     }
   }
 
-  // Process each candidate table
+  // Process each candidate table with isolated column slice
   for (let tIdx = 0; tIdx < tableCandidates.length; tIdx++) {
     const cand = tableCandidates[tIdx];
-    const nextCand = tableCandidates[tIdx + 1];
     const startRow = cand.headerRowIndex + 1;
-    const endRow = nextCand ? nextCand.headerRowIndex : sheet2d.length;
 
     cand.headers.forEach((h) => detectedHeadersSet.add(h));
 
     const tableDataRows: Record<string, unknown>[] = [];
-    for (let r = startRow; r < endRow; r++) {
+    for (let r = startRow; r < sheet2d.length; r++) {
       const row = sheet2d[r];
       if (!Array.isArray(row)) continue;
-      const nonBlank = row.filter((c) => c !== null && c !== undefined && String(c).trim() !== '');
-      if (nonBlank.length === 0) continue;
+      const slice = row.slice(cand.colStart, cand.colEnd + 1);
+      const nonBlank = slice.filter((c) => c !== null && c !== undefined && String(c).trim() !== '');
+      if (nonBlank.length === 0) {
+        // Table ended in this column span
+        if (tableDataRows.length > 0) break;
+        continue;
+      }
+
+      // Check if another header is starting in this exact column interval
+      const sliceText = slice.map((c) => String(c ?? '').trim()).join(' ').toLowerCase();
+      if (
+        r > startRow &&
+        /(كود.*صنف|item.*code|تارجت.*فرع|نسبة.*تحقيق)/i.test(sliceText) &&
+        /(حافز|بونص|incentive|bonus|prize|مكاف)/i.test(sliceText)
+      ) {
+        break;
+      }
 
       const rowObj: Record<string, unknown> = {};
       cand.headers.forEach((h, colIdx) => {
-        rowObj[h] = row[colIdx] ?? '';
+        rowObj[h] = slice[colIdx] ?? '';
       });
       tableDataRows.push(rowObj);
     }
@@ -3312,6 +3448,7 @@ export function extractTablesFromIncentiveSheet2D(
           productRules.push({
             id: `rule-${sheetName}-${tIdx}-${rowIdx}-${Date.now().toString(36)}`,
             productCategory: category || itemCode,
+            itemCode: itemCode || undefined,
             incentiveAmount: amt,
             incentiveType: 'fixed',
             minTargetQty: minQty && minQty > 0 ? minQty : undefined,
@@ -3343,19 +3480,33 @@ export function extractTablesFromIncentiveSheet2D(
 
       let tierCount = 0;
       tableDataRows.forEach((row, rowIdx) => {
-        const thresholdVal = threshKey ? parseArabicOrWesternNumber(row[threshKey]) : undefined;
+        let thresholdVal = threshKey ? parseArabicOrWesternNumber(row[threshKey]) : undefined;
         const tierName = tierKey ? String(row[tierKey] || '').trim() : '';
-        const prizeAmount = prizeKey ? parseArabicOrWesternNumber(row[prizeKey]) : 0;
+        let prizeAmount = prizeKey ? parseArabicOrWesternNumber(row[prizeKey]) : 0;
         const conditions = condKey ? String(row[condKey] || '').trim() : '';
 
         if (/^(نسبة|تارجت|total|اجمالي)/i.test(tierName)) return;
+
+        // Auto-detect specific Raya contest configurations (SHIELD Contest 60k/4k, TV Ultra Contest, Midea-Toshiba 500k)
+        let contestName = `مخطط شرائح ${sheetName} ${tierName || `شريحة ${tierCount + 1}`}`.trim();
+        const banner = cand.bannerContext || '';
+        if (/shield/i.test(banner) || /shield/i.test(sheetName) || /shield/i.test(tierName)) {
+          contestName = 'SHIELD Contest (فرع كونكورد بلازا)';
+          if (!thresholdVal || thresholdVal <= 0) thresholdVal = 60000;
+          if (!prizeAmount || prizeAmount <= 0) prizeAmount = 4000;
+        } else if (/tv\s*ultra|ultra/i.test(banner) || /ultra/i.test(tierName)) {
+          contestName = 'TV Ultra Contest (شاشات وتلفزيونات)';
+        } else if (/midea|toshiba|ميديا|توشيبا/i.test(banner) || /midea/i.test(tierName)) {
+          contestName = 'Contest for Midea-Toshiba (فرع كونكورد بلازا)';
+          if (!thresholdVal || thresholdVal <= 0) thresholdVal = 500000;
+        }
 
         if (prizeAmount > 0 || (thresholdVal !== undefined && thresholdVal > 0)) {
           tierCount++;
           branchTierSchemes.push({
             id: `scheme-${sheetName}-${tIdx}-${rowIdx}-${Date.now().toString(36)}`,
             sheetName,
-            schemeName: `مخطط شرائح ${sheetName} ${tierName || `شريحة ${tierCount}`}`.trim(),
+            schemeName: contestName,
             targetThreshold: thresholdVal,
             tierName: tierName || `المستوى ${tierCount}`,
             prizeOrBonusAmount: prizeAmount,
@@ -3661,7 +3812,7 @@ export function mergeIncentiveDataIntoSalesRecords(
       const codeMatch = r.description?.match(/كود:\s*([^\s,]+)/i);
       const explicitCode = codeMatch ? codeMatch[1] : undefined;
       return {
-        itemCode: explicitCode || r.productCategory,
+        itemCode: r.itemCode || explicitCode || r.productCategory,
         productName: r.productCategory,
         unitIncentive: r.incentiveAmount,
         ruleName: r.productCategory,
@@ -3670,20 +3821,68 @@ export function mergeIncentiveDataIntoSalesRecords(
       };
     });
 
-    const updated = records.map((rec) => {
-      let earned = 0;
-      const items: EmployeeIncentiveItem[] = [];
+    // Evaluate Branch Tier / Contest Schemes (e.g. SHIELD Contest in ACC: 60k/4k)
+    let branchContestBonusPerRep = 0;
+    const branchContestItems: EmployeeIncentiveItem[] = [];
 
-      // 1. If transaction-level items exist, match strictly against sold items
+    if (incentiveResult.branchTierSchemes && incentiveResult.branchTierSchemes.length > 0) {
+      const totalBranchAcc = records.reduce((s, r) => s + (r.accessoriesActual || 0), 0);
+      const totalBranchRev = records.reduce((s, r) => s + (r.actualAfterVat || r.actual || 0), 0);
+
+      incentiveResult.branchTierSchemes.forEach((scheme) => {
+        const isShield = /shield/i.test(scheme.schemeName) || /acc/i.test(scheme.sheetName);
+        const isMidea = /midea|toshiba/i.test(scheme.schemeName) || /mda/i.test(scheme.sheetName);
+        const prize = scheme.prizeOrBonusAmount || 0;
+        const threshold = scheme.targetThreshold || (isShield ? 60000 : (isMidea ? 500000 : 0));
+
+        let isAchieved = false;
+        if (isShield && totalBranchAcc >= threshold) isAchieved = true;
+        else if (isMidea && totalBranchRev >= threshold) isAchieved = true;
+        else if (threshold > 0 && totalBranchRev >= threshold) isAchieved = true;
+
+        if (isAchieved && prize > 0) {
+          const perRep = records.length > 0 ? Math.round(prize / records.length) : prize;
+          branchContestBonusPerRep += perRep;
+          branchContestItems.push({
+            productCategory: scheme.schemeName,
+            quantitySold: 1,
+            unitIncentive: perRep,
+            totalEarned: perRep,
+          });
+        }
+      });
+    }
+
+    const updated = records.map((rec) => {
+      let earned = branchContestBonusPerRep;
+      const items: EmployeeIncentiveItem[] = [...branchContestItems];
+
+      // 1. If transaction-level items exist, match strictly against NET sold quantities (sum(qty) > 0)
       if (rec.transactionItems && rec.transactionItems.length > 0) {
+        const skuNetMap = new Map<string, { itemCode: string; description: string; netQty: number; netAmount: number; price: number }>();
         rec.transactionItems.forEach((tx) => {
+          const code = String(tx.itemCode || '').trim();
+          const desc = String(tx.description || '').trim();
+          const key = (code && code !== 'undefined') ? code : normalizeArabicText(desc);
+          if (!key) return;
+          const curr = skuNetMap.get(key) || { itemCode: code, description: desc, netQty: 0, netAmount: 0, price: tx.price || 0 };
+          curr.netQty += tx.qty;
+          curr.netAmount += tx.amount;
+          if (tx.price) curr.price = tx.price;
+          skuNetMap.set(key, curr);
+        });
+
+        // Match against net sold quantities where netQty > 0
+        skuNetMap.forEach((entry) => {
+          if (entry.netQty <= 0) return; // Net return or cancelled transaction
+
           const match = matchStrictProductIncentive(
             {
-              itemCode: tx.itemCode,
-              description: tx.description,
-              quantity: tx.qty,
-              amount: tx.amount,
-              price: tx.price,
+              itemCode: entry.itemCode,
+              description: entry.description,
+              quantity: entry.netQty,
+              amount: entry.netAmount,
+              price: entry.price,
             },
             mappedRules
           );
@@ -3691,8 +3890,8 @@ export function mergeIncentiveDataIntoSalesRecords(
           if (match.isEligible && match.unitIncentive > 0) {
             earned += match.totalEarnedIncentive;
             items.push({
-              productCategory: tx.description || tx.itemCode || 'صنف معتمد',
-              quantitySold: tx.qty,
+              productCategory: entry.description || entry.itemCode || 'صنف معتمد',
+              quantitySold: entry.netQty,
               unitIncentive: match.unitIncentive,
               totalEarned: match.totalEarnedIncentive,
             });

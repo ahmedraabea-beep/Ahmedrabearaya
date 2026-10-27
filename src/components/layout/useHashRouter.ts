@@ -34,7 +34,7 @@ export type NormalizedRoute =
 const LAST_ROUTE_KEY = 'raya_last_route_v2';
 
 export function normalizeRoute(r: string): NormalizedRoute {
-  const clean = r.replace(/^#\/?/, '').replace(/^\//, '');
+  const clean = r.replace(/^#\/?/, '').replace(/^\//, '').split('?')[0];
   switch (clean) {
     case 'sales':
       return '/sales';

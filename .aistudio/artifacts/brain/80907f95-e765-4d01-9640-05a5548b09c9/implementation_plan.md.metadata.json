@@ -1,6 +1,6 @@
 {
-  "summary":  "خطة معمارية تفصيلية وشاملة لإعادة هيكلة تطبيق راية كونكورد بلازا إلى تطبيق متعدد الصفحات (Multi-page Architecture) مع نظام توجيه Hash Router، وشريط جانبي قابل للطي، وشريط سفلي مريح للموبايل، وبحث شامل، ومصدر بيانات موحد (DataStore Context + Server API + Selectors)، مع الحفاظ الكامل على كافة المكونات والميزات الحالية دون أي استبعاد.",
-  "updatedAt":  "2026-10-25T18:36:05.833376218Z",
+  "summary":  "Detailed update of implementation plan documenting the Pivot Table presets, Brand Normalization engine, Top-Selling Categories dashboard widget, and the thorough candidates-for-deletion audit.",
+  "updatedAt":  "2026-10-27T10:39:49.703991935Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

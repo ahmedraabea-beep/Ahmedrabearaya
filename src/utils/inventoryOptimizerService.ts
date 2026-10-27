@@ -1144,13 +1144,59 @@ export function buildInventoryItemsFromRows(
     ? `${sheetMaxDate.getDate()} ${arabicMonthNames[sheetMaxDate.getMonth()]} ${sheetMaxDate.getFullYear()}`
     : undefined;
 
+  // Detect if rows represent a vertical multi-store ledger (Oracle / Raya Retail Stock extract)
+  const sampleRow = rows.length > 0 ? rows[0] : {};
+  const sampleKeys = Object.keys(sampleRow);
+  const cleanKeys = sampleKeys.map((k) => ({
+    raw: k,
+    norm: normalizeHeaderKey(k),
+  }));
+
+  const storeIdKey = cleanKeys.find((k) =>
+    /^(store\s*id|wh\s*id|wh|store\s*code|كود\s*المخزن|كود\s*الفرع)$/i.test(k.raw) ||
+    /store.*id|wh.*id|كود.*(مخزن|فرع)/i.test(k.norm)
+  )?.raw;
+
+  const storeNameKey = cleanKeys.find((k) =>
+    /^(store\s*name|wh\s*name|branch\s*name|اسم\s*الفرع|اسم\s*المخزن)$/i.test(k.raw) ||
+    /store.*name|wh.*name|اسم.*(فرع|مخزن)/i.test(k.norm)
+  )?.raw;
+
+  const itemCodeKey = cleanKeys.find((k) =>
+    /^(item\s*code|itemcode|sku|كود\s*الصنف|كود_الصنف)$/i.test(k.raw) ||
+    /item.*code|كود.*صنف/i.test(k.norm)
+  )?.raw || mapping.skuColumn;
+
+  const itemDescKey = cleanKeys.find((k) =>
+    /^(item\s*description|description|وصف\s*الصنف|بيان\s*الصنف)$/i.test(k.raw) ||
+    /item.*description|وصف.*صنف/i.test(k.norm)
+  )?.raw || mapping.nameColumn;
+
+  const qtyAtpKey = cleanKeys.find((k) =>
+    /^(qty\s*atp|atp|الكمية\s*المتاحة)$/i.test(k.raw) || /qty.*atp|atp/i.test(k.norm)
+  )?.raw;
+
+  const qtyOnHandKey = cleanKeys.find((k) =>
+    /^(qty\s*on-?hand|on-?hand|الكمية\s*الفعلية)$/i.test(k.raw) || /on.*hand/i.test(k.norm)
+  )?.raw;
+
+  const genericQtyKey = cleanKeys.find((k) =>
+    /^(qty|quantity|الكمية|الرصيد)$/i.test(k.raw) || /^(qty|quantity|كميه|رصيد)$/i.test(k.norm)
+  )?.raw;
+
+  const isVerticalStoreLedger = Boolean(
+    (storeIdKey || storeNameKey) &&
+    (itemCodeKey || itemDescKey) &&
+    (qtyAtpKey || qtyOnHandKey || genericQtyKey)
+  );
+
   // Map to hold best/latest row per item SKU / Name
   const itemMap = new Map<string, { item: InventoryItem; dateObj: Date | null; rowIndex: number }>();
 
   rows.forEach((row, idx) => {
     // 1. SKU & Name
-    let rawSku = mapping.skuColumn ? getInventoryRowValue(row, mapping.skuColumn) : undefined;
-    let rawName = mapping.nameColumn ? getInventoryRowValue(row, mapping.nameColumn) : undefined;
+    let rawSku = (isVerticalStoreLedger && itemCodeKey) ? getInventoryRowValue(row, itemCodeKey) : (mapping.skuColumn ? getInventoryRowValue(row, mapping.skuColumn) : undefined);
+    let rawName = (isVerticalStoreLedger && itemDescKey) ? getInventoryRowValue(row, itemDescKey) : (mapping.nameColumn ? getInventoryRowValue(row, mapping.nameColumn) : undefined);
 
     if (!rawSku && !rawName) {
       return;
@@ -1178,24 +1224,43 @@ export function buildInventoryItemsFromRows(
     }
     if (!rowDate) {
       for (const [k, v] of Object.entries(row)) {
-        if (/تاريخ|يوم|date|snapshot/i.test(k)) {
+        if (/تاريخ|يوم|date|snapshot|run\s*date/i.test(k)) {
           const d = parseSheetDate(v, true);
           if (d) { rowDate = d; break; }
         }
       }
     }
 
-    // 2. Concorde Branch Stock
-    const rawConcorde = mapping.concordeStockColumn ? getInventoryRowValue(row, mapping.concordeStockColumn) : 0;
-    const concordeStock = Math.max(0, Math.round(cleanArabicOrWesternNumber(rawConcorde, 0)));
+    let concordeStock = 0;
+    let mainWarehouseStock = 0;
 
-    // 3. Main Warehouse Stock
-    const rawWarehouse = mapping.mainWarehouseStockColumn ? getInventoryRowValue(row, mapping.mainWarehouseStockColumn) : undefined;
-    let mainWarehouseStock = rawWarehouse !== undefined ? Math.max(0, Math.round(cleanArabicOrWesternNumber(rawWarehouse, 0))) : 0;
+    if (isVerticalStoreLedger) {
+      const storeIdVal = storeIdKey ? String(getInventoryRowValue(row, storeIdKey) || '').trim() : '';
+      const storeNameVal = storeNameKey ? String(getInventoryRowValue(row, storeNameKey) || '').trim() : '';
+      const isConcorde =
+        storeIdVal === '0032' ||
+        storeIdVal === '32' ||
+        /concorde|كونكورد|105/i.test(storeNameVal);
+      const isMainWH =
+        storeIdVal === '4016' ||
+        /main.*wh|central|قطام|رئيسي/i.test(storeNameVal);
 
-    // If main warehouse was NOT in the sheet (single branch sheet), check if bestseller or simulate realistic central stock
-    if (!mapping.mainWarehouseStockColumn && concordeStock <= 1) {
-      mainWarehouseStock = (idx % 3 === 0) ? 12 : (idx % 2 === 0) ? 8 : 4;
+      const rawRowQty = qtyAtpKey
+        ? getInventoryRowValue(row, qtyAtpKey)
+        : (qtyOnHandKey ? getInventoryRowValue(row, qtyOnHandKey) : (genericQtyKey ? getInventoryRowValue(row, genericQtyKey) : 0));
+      const parsedRowQty = Math.max(0, Math.round(cleanArabicOrWesternNumber(rawRowQty, 0)));
+
+      if (isConcorde) {
+        concordeStock = parsedRowQty;
+      } else if (isMainWH || !isConcorde) {
+        mainWarehouseStock = parsedRowQty;
+      }
+    } else {
+      const rawConcorde = mapping.concordeStockColumn ? getInventoryRowValue(row, mapping.concordeStockColumn) : 0;
+      concordeStock = Math.max(0, Math.round(cleanArabicOrWesternNumber(rawConcorde, 0)));
+
+      const rawWarehouse = mapping.mainWarehouseStockColumn ? getInventoryRowValue(row, mapping.mainWarehouseStockColumn) : undefined;
+      mainWarehouseStock = rawWarehouse !== undefined ? Math.max(0, Math.round(cleanArabicOrWesternNumber(rawWarehouse, 0))) : 0;
     }
 
     // 4. Monthly Sales Velocity / Movement
@@ -1211,12 +1276,6 @@ export function buildInventoryItemsFromRows(
       else if (/a55|a35|redmi note|reno/i.test(name)) priceEgp = 18000;
       else if (/airpods|watch|buds|powerbank|charger|joyroom|anker/i.test(name)) priceEgp = 3500;
       else priceEgp = 8500;
-    }
-
-    if (!mapping.salesVelocityColumn && monthlySalesVelocity === 0) {
-      if (priceEgp >= 40000) monthlySalesVelocity = 12;
-      else if (priceEgp >= 15000) monthlySalesVelocity = 18;
-      else monthlySalesVelocity = 25;
     }
 
     // 6. Category
@@ -1294,17 +1353,19 @@ export function buildInventoryItemsFromRows(
       dateFormattedAr: effectiveDateAr,
     };
 
-    // Deduplication by SKU or Item Name: keep entry corresponding to LATEST DATE
+    // Deduplication / Aggregation by SKU or Item Name across stores and locations
     const itemKey = (sku && sku !== 'SKU-') ? sku.toLowerCase() : normalizeHeaderKey(name);
     if (!itemMap.has(itemKey)) {
       itemMap.set(itemKey, { item: parsedItem, dateObj: rowDate, rowIndex: idx });
     } else {
       const existing = itemMap.get(itemKey)!;
-      // If current row has a newer date than existing, replace with the newer snapshot
+      existing.item.concordeStock += concordeStock;
+      existing.item.mainWarehouseStock += mainWarehouseStock;
+      existing.item.monthlySalesVelocity += monthlySalesVelocity;
       if (rowDate && (!existing.dateObj || rowDate.getTime() > existing.dateObj.getTime())) {
-        itemMap.set(itemKey, { item: parsedItem, dateObj: rowDate, rowIndex: idx });
-      } else if (!rowDate && !existing.dateObj) {
-        itemMap.set(itemKey, { item: parsedItem, dateObj: null, rowIndex: idx });
+        existing.dateObj = rowDate;
+        existing.item.date = effectiveDateIso;
+        existing.item.dateFormattedAr = effectiveDateAr;
       }
     }
   });

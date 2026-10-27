@@ -36,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAr = state.settings.language === 'ar';
   const totals = selectFinancialTotals(state);
 
-  const navItems: Array<{
+  const primaryNavItems: Array<{
     route: AppRoute;
     titleAr: string;
     titleEn: string;
@@ -52,54 +52,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       route: '/sales',
-      titleAr: 'المبيعات والسجلات',
-      titleEn: 'Sales & Ingestion',
+      titleAr: 'المبيعات',
+      titleEn: 'Sales',
       icon: Receipt,
       badge: totals.transactionsCount,
-      badgeColor: 'bg-emerald-100 text-emerald-800',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300',
     },
     {
       route: '/targets',
-      titleAr: 'الأهداف والتارجت',
-      titleEn: 'Targets & Goals',
+      titleAr: 'الأهداف',
+      titleEn: 'Targets',
       icon: Target,
     },
     {
       route: '/staff',
-      titleAr: 'الموظفين والأداء',
-      titleEn: 'Staff & Roster',
+      titleAr: 'الموظفين',
+      titleEn: 'Staff',
       icon: Users,
-      badge: state.records.length,
-      badgeColor: 'bg-blue-100 text-blue-800',
     },
     {
+      route: '/reports',
+      titleAr: 'التقارير',
+      titleEn: 'Reports',
+      icon: FileText,
+    },
+  ];
+
+  const secondaryNavItems: Array<{
+    route: AppRoute;
+    titleAr: string;
+    titleEn: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
+    {
       route: '/incentives',
-      titleAr: 'الحوافز والمكافآت',
+      titleAr: 'الحوافز',
       titleEn: 'Incentives',
       icon: Award,
     },
     {
       route: '/analytics',
-      titleAr: 'التحليلات والتوقعات',
-      titleEn: 'Analytics & Growth',
+      titleAr: 'التحليلات',
+      titleEn: 'Analytics',
       icon: TrendingUp,
     },
     {
       route: '/inventory',
-      titleAr: 'المخزون الذكي',
-      titleEn: 'Smart Inventory',
+      titleAr: 'المخزون',
+      titleEn: 'Inventory',
       icon: Package,
     },
     {
-      route: '/reports',
-      titleAr: 'التقارير والتصدير',
-      titleEn: 'Reports & Export',
-      icon: FileText,
-    },
-    {
       route: '/settings',
-      titleAr: 'الإعدادات والبيانات',
-      titleEn: 'Settings & Backup',
+      titleAr: 'الإعدادات',
+      titleEn: 'Settings',
       icon: Settings,
     },
   ];
@@ -152,41 +158,80 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Navigation List */}
-      <nav className="flex-1 px-2.5 py-4 space-y-1.5 overflow-y-auto overflow-x-hidden">
-        {navItems.map((item) => {
-          const isActive = currentRoute === item.route;
-          const Icon = item.icon;
+      <nav className="flex-1 px-2.5 py-4 space-y-4 overflow-y-auto overflow-x-hidden">
+        {/* Primary 5 Items */}
+        <div className="space-y-1.5">
+          {!isCollapsed && (
+            <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              {isAr ? 'القائمة الرئيسية' : 'Main Menu'}
+            </div>
+          )}
+          {primaryNavItems.map((item) => {
+            const isActive = currentRoute === item.route;
+            const Icon = item.icon;
 
-          return (
-            <button
-              key={item.route}
-              onClick={() => onNavigate(item.route)}
-              className={`w-full flex items-center rounded-xl py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
-                isCollapsed ? 'justify-center' : 'justify-between'
-              } ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-              title={isAr ? item.titleAr : item.titleEn}
-            >
-              <div className="flex items-center gap-3 truncate">
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+            return (
+              <button
+                key={item.route}
+                onClick={() => onNavigate(item.route)}
+                className={`w-full flex items-center rounded-xl py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
+                  isCollapsed ? 'justify-center' : 'justify-between'
+                } ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+                title={isAr ? item.titleAr : item.titleEn}
+              >
+                <div className="flex items-center gap-3 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  {!isCollapsed && <span className="truncate">{isAr ? item.titleAr : item.titleEn}</span>}
+                </div>
+
+                {!isCollapsed && item.badge !== undefined && (
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full shrink-0 ${
+                      isActive ? 'bg-white/20 text-white' : item.badgeColor || 'bg-slate-800 text-slate-300'
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Secondary / More Items */}
+        <div className="space-y-1.5 pt-2 border-t border-slate-800">
+          {!isCollapsed && (
+            <div className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              {isAr ? 'المزيد والأقسام الإضافية' : 'More & Extras'}
+            </div>
+          )}
+          {secondaryNavItems.map((item) => {
+            const isActive = currentRoute === item.route;
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.route}
+                onClick={() => onNavigate(item.route)}
+                className={`w-full flex items-center rounded-xl py-2 px-3 text-xs font-medium transition-all cursor-pointer ${
+                  isCollapsed ? 'justify-center' : 'justify-start gap-3'
+                } ${
+                  isActive
+                    ? 'bg-blue-600 text-white font-bold shadow-sm'
+                    : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'
+                }`}
+                title={isAr ? item.titleAr : item.titleEn}
+              >
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                 {!isCollapsed && <span className="truncate">{isAr ? item.titleAr : item.titleEn}</span>}
-              </div>
-
-              {!isCollapsed && item.badge !== undefined && (
-                <span
-                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : item.badgeColor || 'bg-slate-800 text-slate-300'
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Bottom Sync Footer */}

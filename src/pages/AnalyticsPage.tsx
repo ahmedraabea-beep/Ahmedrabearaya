@@ -7,7 +7,6 @@ import {
   Sparkles,
   Building2,
   LineChart,
-  Boxes,
 } from 'lucide-react';
 import { useDataStore } from '../store/DataStore';
 import {
@@ -17,19 +16,16 @@ import {
   selectActiveTargetStructure,
   selectRevenuePaceMetrics,
 } from '../store/selectors';
-import { BranchPerformanceCurve } from '../components/BranchPerformanceCurve';
 import { GrowthForecastSection } from '../components/GrowthForecastSection';
 import { ConcordeAnnualProjectionSection } from '../components/ConcordeAnnualProjectionSection';
 import { BranchComparisonChart } from '../components/BranchComparisonChart';
 import { SalesPeakHeatmap } from '../components/SalesPeakHeatmap';
 import { AbcAnalysisSection } from '../components/AbcAnalysisSection';
-import { FutureHiringAndExpansionTab } from '../components/FutureHiringAndExpansionTab';
-import { RayaCorporateOptimizerDashboard } from '../components/RayaCorporateOptimizerDashboard';
 import { SalesForecastingSection } from '../components/SalesForecastingSection';
 
 export const AnalyticsPage: React.FC = () => {
   const { state, dispatch } = useDataStore();
-  const [activeTab, setActiveTab] = useState<'growth' | 'forecasting' | 'comparison' | 'heatmap' | 'abc' | 'optimizer'>('forecasting');
+  const [activeTab, setActiveTab] = useState<'growth' | 'forecasting' | 'comparison' | 'heatmap' | 'abc'>('forecasting');
 
   const isAr = state.settings.language === 'ar';
   const currency = state.settings.currency;
@@ -41,20 +37,20 @@ export const AnalyticsPage: React.FC = () => {
   const pace = selectRevenuePaceMetrics(state);
 
   return (
-    <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
+    <div className="space-y-4 select-none" dir={isAr ? 'rtl' : 'ltr'}>
       {/* ── Page Header & Sub-Tabs ── */}
       <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Segmented Sub-Tabs */}
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200">
           <button
             onClick={() => setActiveTab('forecasting')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'forecasting'
-                ? 'bg-white text-indigo-900 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <LineChart className="w-4 h-4 text-indigo-600" />
+            <LineChart className="w-4 h-4 text-blue-600" />
             <span>{isAr ? 'التنبؤ بالمبيعات (Forecasting)' : 'Sales Forecasting'}</span>
           </button>
 
@@ -62,7 +58,7 @@ export const AnalyticsPage: React.FC = () => {
             onClick={() => setActiveTab('growth')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'growth'
-                ? 'bg-white text-indigo-900 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -74,7 +70,7 @@ export const AnalyticsPage: React.FC = () => {
             onClick={() => setActiveTab('comparison')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'comparison'
-                ? 'bg-white text-indigo-900 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -86,7 +82,7 @@ export const AnalyticsPage: React.FC = () => {
             onClick={() => setActiveTab('heatmap')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'heatmap'
-                ? 'bg-white text-indigo-900 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -98,31 +94,19 @@ export const AnalyticsPage: React.FC = () => {
             onClick={() => setActiveTab('abc')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'abc'
-                ? 'bg-white text-indigo-900 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Layers className="w-4 h-4 text-purple-600" />
-            <span>{isAr ? 'تحليل ABC والتوظيف' : 'ABC Analysis & Hiring'}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('optimizer')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'optimizer'
-                ? 'bg-white text-indigo-900 shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Boxes className="w-4 h-4 text-emerald-600" />
-            <span>{isAr ? 'لوحة راية المؤسسية للتحسين' : 'Corporate Optimizer'}</span>
+            <Layers className="w-4 h-4 text-indigo-600" />
+            <span>{isAr ? 'تحليل ABC وباريتو' : 'ABC Analysis'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── TAB 1: Sales Forecasting (New Dedicated Feature) ── */}
+      {/* ── TAB 1: التنبؤ بالمبيعات ── */}
       {activeTab === 'forecasting' && (
-        <div className="space-y-5 animate-in fade-in duration-150">
+        <div className="space-y-4 animate-in fade-in duration-150">
           <SalesForecastingSection
             records={activeRecords}
             currency={currency}
@@ -135,19 +119,12 @@ export const AnalyticsPage: React.FC = () => {
       {/* ── TAB 2: النمو والتوقعات السنوية ── */}
       {activeTab === 'growth' && (
         <div className="space-y-5 animate-in fade-in duration-150">
-          <BranchPerformanceCurve
-            records={activeRecords}
-            currency={currency}
-            language={state.settings.language}
-          />
-
           <GrowthForecastSection
             records={activeRecords}
             currency={currency}
             branches={branches}
             language={state.settings.language}
           />
-
           <ConcordeAnnualProjectionSection
             records={activeRecords}
             currency={currency}
@@ -182,7 +159,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── TAB 5: تحليل ABC والتوظيف ── */}
+      {/* ── TAB 5: تحليل ABC ── */}
       {activeTab === 'abc' && (
         <div className="space-y-5 animate-in fade-in duration-150">
           <AbcAnalysisSection
@@ -190,28 +167,6 @@ export const AnalyticsPage: React.FC = () => {
             currency={currency}
             language={state.settings.language}
             targetStructure={targetStructure}
-          />
-
-          <FutureHiringAndExpansionTab
-            records={activeRecords}
-            currency={currency}
-            language={state.settings.language}
-            targetStructure={targetStructure}
-            annualProjectedRevenue={pace.forecastMonthEnd * 12}
-          />
-        </div>
-      )}
-
-      {/* ── TAB 6: لوحة راية المؤسسية للتحسين ── */}
-      {activeTab === 'optimizer' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <RayaCorporateOptimizerDashboard
-            language={state.settings.language}
-            currency={currency}
-            targetStructure={targetStructure}
-            totalActualSales={pace.effectiveTotalActual}
-            items={state.inventoryItems}
-            onUpdateItems={(items) => dispatch({ type: 'SET_INVENTORY_ITEMS', payload: items })}
           />
         </div>
       )}

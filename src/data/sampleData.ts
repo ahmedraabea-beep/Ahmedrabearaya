@@ -293,19 +293,37 @@ export function enrichSalesRecords(records: Omit<SalesRecord, 'achievementRate' 
       vatAmount = actualAfterVat - actualBeforeVat;
     }
 
-    // Default category actuals if not provided
-    const mobilesActual = rec.mobilesActual !== undefined ? rec.mobilesActual : Math.round(actual * 0.65);
-    const accessoriesActual = rec.accessoriesActual !== undefined ? rec.accessoriesActual : Math.round(actual * 0.18);
-    const otherActual = rec.otherActual !== undefined ? rec.otherActual : Math.max(0, actual - mobilesActual - accessoriesActual);
-    const installmentActual = rec.installmentActual !== undefined ? rec.installmentActual : Math.round(actual * 0.25);
+    // Check if record is from an uploaded file or contains transaction items
+    const isUploaded = Boolean(
+      (rec.id && rec.id.startsWith('uploaded-')) ||
+      (rec.transactionItems && rec.transactionItems.length > 0)
+    );
 
-    // Default incentive calculation if not provided:
+    // Default category actuals if not provided: DO NOT fabricate or split for uploaded records!
+    const mobilesActual = rec.mobilesActual !== undefined
+      ? rec.mobilesActual
+      : (isUploaded ? 0 : Math.round(actual * 0.65));
+    const accessoriesActual = rec.accessoriesActual !== undefined
+      ? rec.accessoriesActual
+      : (isUploaded ? 0 : Math.round(actual * 0.18));
+    const otherActual = rec.otherActual !== undefined
+      ? rec.otherActual
+      : (isUploaded ? 0 : Math.max(0, actual - mobilesActual - accessoriesActual));
+    const installmentActual = rec.installmentActual !== undefined
+      ? rec.installmentActual
+      : (isUploaded ? 0 : Math.round(actual * 0.25));
+
+    // Default incentive calculation if not provided: DO NOT force 2% on uploaded sheets!
     let earnedIncentive = rec.earnedIncentive;
     if (earnedIncentive === undefined) {
-      // Estimated base: 2% of sales + bonus for target
-      const baseCommission = Math.round(actual * 0.02);
-      const targetBonus = isAchieved ? Math.round(difference * 0.03) : 0;
-      earnedIncentive = baseCommission + targetBonus;
+      if (isUploaded) {
+        earnedIncentive = 0;
+      } else {
+        // Estimated base for sample records only: 2% of sales + bonus for target
+        const baseCommission = Math.round(actual * 0.02);
+        const targetBonus = isAchieved ? Math.round(difference * 0.03) : 0;
+        earnedIncentive = baseCommission + targetBonus;
+      }
     }
 
     return {

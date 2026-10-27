@@ -35,6 +35,7 @@ export interface SalesRecord {
 
 export interface ProductIncentiveRule {
   id: string;
+  itemCode?: string; // كود الصنف الخام الصريح للمطابقة المباشرة
   productCategory: string; // اسم المنتج أو الفئة
   incentiveAmount: number; // قيمة الحافز لكل وحدة أو نسبة
   incentiveType: 'fixed' | 'percentage'; // مبلغ ثابت أو نسبة

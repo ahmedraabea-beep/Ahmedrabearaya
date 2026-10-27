@@ -56,6 +56,7 @@ import {
   downloadSampleSalesOnlySheet,
   exportTransferOrderToExcel,
   generateOfficialExecutiveEmailText,
+  loadSavedConcordeInventoryItems,
   loadStockPushSettings,
   saveStockPushSettings,
   detectCriticalZeroStockAlerts,
@@ -110,6 +111,34 @@ export const SmartInventoryOptimizerModal: React.FC<SmartInventoryOptimizerModal
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(
     state.inventoryItems || []
   );
+
+  // Sync inventoryItems with state.inventoryItems and localStorage
+  React.useEffect(() => {
+    if (state.inventoryItems && state.inventoryItems.length > 0) {
+      setInventoryItems(state.inventoryItems);
+    } else {
+      const saved = loadSavedConcordeInventoryItems();
+      if (saved && saved.length > 0) {
+        setInventoryItems(saved);
+      }
+    }
+  }, [state.inventoryItems]);
+
+  // Sync immediately when raya-inventory-updated custom event fires from anywhere in the app
+  React.useEffect(() => {
+    const handleInventoryUpdated = () => {
+      const saved = loadSavedConcordeInventoryItems();
+      if (saved && saved.length > 0) {
+        setInventoryItems(saved);
+        dispatch({ type: 'SET_INVENTORY_ITEMS', payload: saved });
+      }
+    };
+
+    window.addEventListener('raya-inventory-updated', handleInventoryUpdated);
+    return () => {
+      window.removeEventListener('raya-inventory-updated', handleInventoryUpdated);
+    };
+  }, [dispatch]);
 
   // Active section tab: 'transfers' | 'cross_selling' | 'overstock' | 'alternatives' | 'email_view' | 'sheet_guide'
   const [activeTab, setActiveTab] = useState<

@@ -46,7 +46,6 @@ import {
   exportShiftScheduleToExcel,
   calculateShiftSummary,
 } from '../utils/shiftService';
-import { ShiftManagementRosterModal } from './ShiftManagementRosterModal';
 import { calculateEmployeeEfficiency } from './EmployeeDeepAnalytics';
 
 interface PerformanceTableProps {
@@ -1164,14 +1163,6 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({
         </div>
       )}
 
-      {/* Shift Management Roster Modal (Integrated) */}
-      <ShiftManagementRosterModal
-        isOpen={isShiftModalOpen}
-        onClose={() => setIsShiftModalOpen(false)}
-        records={records}
-        currency={currency}
-        language={language}
-      />
     </div>
   );
 };

@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import { SalesPeakHeatmap } from './SalesPeakHeatmap';
 import { AbcAnalysisSection } from './AbcAnalysisSection';
-import { StaffPerformanceSwotComparison } from './StaffPerformanceSwotComparison';
 
 interface SectionAndStaffAnalyticsHubProps {
   records: SalesRecord[];
@@ -759,13 +758,23 @@ export const SectionAndStaffAnalyticsHub: React.FC<SectionAndStaffAnalyticsHubPr
 
             {/* Sub-view 1: SWOT Comparison */}
             {staffSubView === 'swot' && (
-              <StaffPerformanceSwotComparison
-                records={records}
-                currency={currency}
-                language={language}
-                vatDisplayMode={vatDisplayMode}
-                onSelectEmployee={onSelectEmployee}
-              />
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+                <h4 className="font-bold text-sm text-slate-900">{isAr ? 'مصفوفة نقاط القوة والتميز للمستشارين' : 'Advisor Strengths Matrix'}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200">
+                    <span className="font-bold text-emerald-900 block mb-1">{isAr ? 'أعلى نقاط القوة المجرّبة' : 'Core Strengths'}</span>
+                    <p className="text-slate-700 leading-relaxed">
+                      {isAr ? 'كفاءة عالية في إغلاق مبيعات الأجهزة الرائدة (Flagship) وإكسسوارات الحماية.' : 'High closing rate on flagship devices and accessories.'}
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-200">
+                    <span className="font-bold text-blue-900 block mb-1">{isAr ? 'فرص تطوير المهارات' : 'Growth Opportunities'}</span>
+                    <p className="text-slate-700 leading-relaxed">
+                      {isAr ? 'زيادة تفعيل برامج تقسيط أمان والترويج لعروض الحزم (Bundles).' : 'Expanding Aman installment promotion and bundle attachments.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Sub-view 2: Stacked Bars & Multi-Category Breakdown */}

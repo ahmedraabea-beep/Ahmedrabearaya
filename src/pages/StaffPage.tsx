@@ -10,6 +10,7 @@ import {
   ArrowRight,
   TrendingUp,
   Layers,
+  CheckCircle2,
 } from 'lucide-react';
 import { useDataStore } from '../store/DataStore';
 import { selectRecordsInActivePeriod, selectActiveTargetStructure } from '../store/selectors';
@@ -17,12 +18,9 @@ import { Leaderboard } from '../components/Leaderboard';
 import { BranchTeamHeader } from '../components/BranchTeamHeader';
 import { EmployeeDeepAnalytics } from '../components/EmployeeDeepAnalytics';
 import { SectionAndStaffAnalyticsHub } from '../components/SectionAndStaffAnalyticsHub';
-import { AllAchievementsDashboard } from '../components/AllAchievementsDashboard';
-import { StaffPerformanceSwotComparison } from '../components/StaffPerformanceSwotComparison';
-import { ShiftManagementRosterModal } from '../components/ShiftManagementRosterModal';
 import { StaffAttritionAndRetentionTab } from '../components/StaffAttritionAndRetentionTab';
-
 import { SalesRecord } from '../types/sales';
+import { formatCurrencyNumber } from '../utils/calculations';
 
 interface StaffPageProps {
   onOpenMonthlyReport?: () => void;
@@ -32,7 +30,6 @@ interface StaffPageProps {
 export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSelectEmployeeIncentive }) => {
   const { state } = useDataStore();
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'deepAnalytics' | 'swot' | 'shifts' | 'retention'>('leaderboard');
-  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
   const isAr = state.settings.language === 'ar';
   const currency = state.settings.currency;
@@ -40,16 +37,16 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
   const targetStructure = selectActiveTargetStructure(state);
 
   return (
-    <div className="space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
+    <div className="space-y-4 select-none" dir={isAr ? 'rtl' : 'ltr'}>
       {/* ── Page Header & Sub-Tabs ── */}
       <div className="bg-white rounded-3xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Segmented Sub-Tabs */}
-        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200/80">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200">
           <button
             onClick={() => setActiveTab('leaderboard')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'leaderboard'
-                ? 'bg-white text-emerald-800 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -61,7 +58,7 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
             onClick={() => setActiveTab('deepAnalytics')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'deepAnalytics'
-                ? 'bg-white text-emerald-800 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -73,50 +70,41 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
             onClick={() => setActiveTab('swot')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'swot'
-                ? 'bg-white text-emerald-800 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Compass className="w-4 h-4 text-purple-600" />
-            <span>{isAr ? 'مقارنة SWOT' : 'SWOT Comparison'}</span>
+            <span>{isAr ? 'نقاط القوة والأداء (SWOT)' : 'SWOT Analysis'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('shifts')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'shifts'
-                ? 'bg-white text-emerald-800 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Calendar className="w-4 h-4 text-orange-600" />
-            <span>{isAr ? 'جدول الشيفتات' : 'Roster & Shifts'}</span>
+            <span>{isAr ? 'جدول الشيفتات والدوام' : 'Roster & Shifts'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('retention')}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'retention'
-                ? 'bg-white text-emerald-800 shadow-xs'
+                ? 'bg-white text-blue-700 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <ShieldAlert className="w-4 h-4 text-rose-600" />
-            <span>{isAr ? 'الاحتفاظ والدوران' : 'Retention & Attrition'}</span>
+            <Users className="w-4 h-4 text-teal-600" />
+            <span>{isAr ? 'الاحتفاظ بفريق العمل' : 'Staff Retention'}</span>
           </button>
         </div>
-
-        {/* Shift Modal Button */}
-        <button
-          onClick={() => setIsShiftModalOpen(true)}
-          className="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-        >
-          <Calendar className="w-4 h-4" />
-          <span>{isAr ? 'فتح نافذة الشيفتات المنبثقة' : 'Shift Popup'}</span>
-        </button>
       </div>
 
-      {/* ── TAB 1: لوحة الشرف وترتيب المستشارين ── */}
+      {/* ── TAB 1: لوحة الشرف ── */}
       {activeTab === 'leaderboard' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <BranchTeamHeader
@@ -140,7 +128,7 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
         </div>
       )}
 
-      {/* ── TAB 2: التحليل العميق والإنتاجية ── */}
+      {/* ── TAB 2: التحليل العميق ── */}
       {activeTab === 'deepAnalytics' && (
         <div className="space-y-5 animate-in fade-in duration-150">
           <EmployeeDeepAnalytics
@@ -158,26 +146,44 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
             language={state.settings.language}
             vatDisplayMode={state.settings.vatDisplayMode}
           />
-
-          <AllAchievementsDashboard
-            records={activeRecords}
-            targetStructure={targetStructure}
-            currency={currency}
-            language={state.settings.language}
-            vatDisplayMode={state.settings.vatDisplayMode}
-          />
         </div>
       )}
 
-      {/* ── TAB 3: مقارنة SWOT ── */}
+      {/* ── TAB 3: نقاط القوة SWOT ── */}
       {activeTab === 'swot' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <StaffPerformanceSwotComparison
-            records={activeRecords}
-            currency={currency}
-            language={state.settings.language}
-            vatDisplayMode={state.settings.vatDisplayMode}
-          />
+        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+            <Compass className="w-5 h-5 text-purple-600" />
+            <h3 className="text-base font-bold text-slate-900">
+              {isAr ? 'تحليل نقاط القوة والتميز لفريق كونكورد بلازا' : 'Staff Strengths & Performance SWOT'}
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
+              <span className="font-bold text-emerald-900 block flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>{isAr ? 'نقاط القوة (Strengths)' : 'Strengths'}</span>
+              </span>
+              <p className="text-slate-700 leading-relaxed">
+                {isAr
+                  ? 'تجاوز مستشاري المبيعات لخطوط التارجت بنسب إنجاز مرتفعة، وجودة مطابقة السجلات المعتمدة بنسبة 100% بدون أي أخطاء حسابية.'
+                  : 'High target achievement rates across advisors with 100% reconciliation accuracy.'}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 space-y-2">
+              <span className="font-bold text-blue-900 block flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span>{isAr ? 'الفرص المتاحة (Opportunities)' : 'Opportunities'}</span>
+              </span>
+              <p className="text-slate-700 leading-relaxed">
+                {isAr
+                  ? 'تركيز أعلى على إكسسوارات الهواتف وأجهزة المنزل الذكي لرفع متوسط قيمة الفاتورة وزيادة الحوافز الإضافية.'
+                  : 'Focus on accessory attachment rates to increase average basket size.'}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -192,14 +198,8 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
             <p className="text-xs text-slate-500 max-w-md mx-auto">
               {isAr
                 ? 'توزيع أوقات العمل الصباحية والمسائية لمستشاري المبيعات، ومطابقة ساعات الذروة وتصدير الإكسيل والواتساب.'
-                : 'Manage morning, evening, and peak shift allocations with WhatsApp sharing.'}
+                : 'Manage morning, evening, and peak shift allocations.'}
             </p>
-            <button
-              onClick={() => setIsShiftModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-            >
-              {isAr ? 'فتح جدول الشيفتات والتحكم الكامل' : 'Open Shift Roster Interface'}
-            </button>
           </div>
         </div>
       )}
@@ -214,15 +214,8 @@ export const StaffPage: React.FC<StaffPageProps> = ({ onOpenMonthlyReport, onSel
           />
         </div>
       )}
-
-      {/* ── Shift Management Modal ── */}
-      <ShiftManagementRosterModal
-        isOpen={isShiftModalOpen}
-        onClose={() => setIsShiftModalOpen(false)}
-        records={activeRecords}
-        currency={currency}
-        language={state.settings.language}
-      />
     </div>
   );
 };
+
+export default StaffPage;
